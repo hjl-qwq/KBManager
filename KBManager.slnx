@@ -1,4 +1,12 @@
 <Solution>
-  <Project Path="KBManager.CLI/KBManager.CLI.csproj" />
-  <Project Path="KBManager.core/KBManager.core.csproj" />
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="KBManager.CLI/KBManager.CLI.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="KBManager.core/KBManager.core.csproj" Id="00d6b409-206d-4db9-8e8e-c86b1dfae470">
+    <Platform Solution="Release|x64" Project="x64" />
+  </Project>
 </Solution>
