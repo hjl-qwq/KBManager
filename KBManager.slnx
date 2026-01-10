@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="KBManager.CLI/KBManager.CLI.csproj" />
+  <Project Path="KBManager.core/KBManager.core.csproj" />
+</Solution>
