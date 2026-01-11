@@ -7,119 +7,118 @@ namespace KBManager.CLI
     {
         static void Main(string[] args)
         {
-            // 1. Initialize Git configuration model (centralized management of all parameters)
-            var gitConfig = new GitConfigModel
-            {
-                UserName = "Your Git Username",       // Replace with your actual username
-                UserEmail = "your.email@example.com", // Replace with your actual email
-                RemoteAddress = "https://github.com/your-username/your-repo.git", // Replace with remote address
-                RepositoryDirectory = @"C:\Your\Local\Repo\Path", // Replace with local repository path
-                CommitMessage = "Update: Add new features" // Custom commit message
-            };
+            Console.WriteLine("===== Git Operation CLI Tool =====");
+            Console.WriteLine("Please select the Git operation to execute:");
+            Console.WriteLine("1. Clone remote repository to local path");
+            Console.WriteLine("2. Execute Git Add (stage all changed files)");
+            Console.WriteLine("3. Execute Git Commit (commit staged changes)");
+            Console.WriteLine("4. Exit");
+            Console.WriteLine("===================================\n");
 
-            // 2. Initialize GitHelper
+            // Main loop: keep receiving user input until exit is selected
+            while (true)
+            {
+                Console.Write("Please enter operation number (1-4): ");
+                var input = Console.ReadLine();
+                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 4)
+                {
+                    Console.WriteLine("Invalid input, please enter a number between 1 and 4!\n");
+                    continue;
+                }
+
+                switch (choice)
+                {
+                    case 1:
+                        ExecuteCloneOperation();
+                        break;
+                    case 2:
+                        ExecuteAddOperation();
+                        break;
+                    case 3:
+                        ExecuteCommitOperation();
+                        break;
+                    case 4:
+                        Console.WriteLine("Exiting program...");
+                        return;
+                }
+
+                Console.WriteLine("\n-------------------------\n"); // Operation separator
+            }
+        }
+
+        /// <summary>
+        /// Execute Git Clone operation interactively
+        /// </summary>
+        private static void ExecuteCloneOperation()
+        {
+            Console.WriteLine("\n===== Executing Git Clone Operation =====");
+            var gitConfig = new GitConfigModel();
+
+            // Get clone parameters from user input
+            Console.Write("Please enter remote repository URL (e.g. https://github.com/username/repo.git): ");
+            gitConfig.RemoteAddress = Console.ReadLine()?.Trim();
+
+            Console.Write("Please enter local clone path (e.g. C:\\Git\\MyRepo): ");
+            gitConfig.RepositoryDirectory = Console.ReadLine()?.Trim();
+
+            // Execute clone operation
             var gitHelper = new GitHelper();
+            bool result = gitHelper.CloneRepository(gitConfig);
 
-            // 3. Example 1: Independent call Git Add operation
-            Console.WriteLine("=== Execute Git Add Operation Independently ===");
-            bool addResult = gitHelper.ExecuteGitAdd(gitConfig);
-            if (addResult)
-            {
-                Console.WriteLine("Git Add operation completed successfully");
-            }
-            else
-            {
-                Console.WriteLine("Git Add operation failed");
-            }
-
-            // 4. Example 2: Independent call Git Commit operation (can be called separately at any time)
-            Console.WriteLine("\n=== Execute Git Commit Operation Independently ===");
-            bool commitResult = gitHelper.ExecuteGitCommit(gitConfig);
-            if (commitResult)
-            {
-                Console.WriteLine("Git Commit operation completed successfully");
-            }
-            else
-            {
-                Console.WriteLine("Git Commit operation failed");
-            }
-
-            // Optional: Test Clone operation (use GitConfigModel)
-            //Console.WriteLine("\n=== Execute Git Clone Operation ===");
-            //bool cloneResult = gitHelper.CloneRepository(gitConfig);
-            //if (cloneResult)
-            //{
-            //    Console.WriteLine("Git Clone operation completed successfully");
-            //}
-            //else
-            //{
-            //    Console.WriteLine("Git Clone operation failed");
-            //}
-
-            // Keep console window open
-            Console.WriteLine($"\nAll specified operations completed.");
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
+            Console.WriteLine(result
+                ? "Clone operation executed successfully!"
+                : "Clone operation executed failed!");
         }
 
-        // Keep the original test methods (compatible with old logic, optional to delete)
-        static void TestGitClone()
+        /// <summary>
+        /// Execute Git Add operation interactively
+        /// </summary>
+        private static void ExecuteAddOperation()
         {
-            try
-            {
-                var gitHelper = new GitHelper();
-                string repoUrl = "Your remote repository (only support http yet)";
-                string localPath = @"Repository directory on your desktop";
+            Console.WriteLine("\n===== Executing Git Add Operation =====");
+            var gitConfig = new GitConfigModel();
 
-                Console.WriteLine("Start executing Git Clone operation...");
-                bool isSuccess = gitHelper.CloneRepository(repoUrl, localPath);
-                Console.WriteLine($"Git Clone operation completed, success status: {isSuccess}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Git Clone execution exception: {ex.Message}");
-                Console.WriteLine($"Exception details: {ex.ToString()}");
-            }
+            // Get local repository path from user input
+            Console.Write("Please enter local repository directory path (e.g. C:\\Git\\MyRepo): ");
+            gitConfig.RepositoryDirectory = Console.ReadLine()?.Trim();
+
+            // Execute add operation
+            var gitHelper = new GitHelper();
+            bool result = gitHelper.ExecuteGitAdd(gitConfig);
+
+            Console.WriteLine(result
+                ? "Add operation executed successfully!"
+                : "Add operation executed failed!");
         }
 
-        static void TestGitAddAndCommit()
+        /// <summary>
+        /// Execute Git Commit operation interactively
+        /// </summary>
+        private static void ExecuteCommitOperation()
         {
-            try
-            {
-                var gitHelper = new GitHelper();
-                string localRepoPath = @"Repository directory on your desktop";
-                string tempUserName = "Your user name";
-                string tempUserEmail = "Your email";
-                string commitMessage = "Your commit message";
+            Console.WriteLine("\n===== Executing Git Commit Operation =====");
+            var gitConfig = new GitConfigModel();
 
-                Console.WriteLine("\nStart executing Git Add . operation...");
-                bool addSuccess = gitHelper.AddAllFiles(localRepoPath);
-                if (!addSuccess)
-                {
-                    Console.WriteLine("Git Add . operation failed, terminate subsequent Commit process");
-                    return;
-                }
-                Console.WriteLine("Git Add . operation succeeded");
+            // Get commit parameters from user input
+            Console.Write("Please enter local repository directory path (e.g. C:\\Git\\MyRepo): ");
+            gitConfig.RepositoryDirectory = Console.ReadLine()?.Trim();
 
-                Console.WriteLine("\nStart executing Git Commit operation...");
-                bool commitSuccess = gitHelper.CommitChanges(localRepoPath, commitMessage, tempUserName, tempUserEmail);
+            Console.Write("Please enter Git username: ");
+            gitConfig.UserName = Console.ReadLine()?.Trim();
 
-                if (commitSuccess)
-                {
-                    Console.WriteLine($"Git Commit operation succeeded!");
-                    Console.WriteLine($"Commit message: {commitMessage}");
-                    Console.WriteLine($"本次提交使用的用户信息：{tempUserName} <{tempUserEmail}>");
-                }
-                else
-                {
-                    Console.WriteLine("Git Commit operation failed (no changes to commit possibly)");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Exception occurred while executing Git Add/Commit: {ex.Message}");
-                Console.WriteLine($"Exception details: {ex.ToString()}");
-            }
+            Console.Write("Please enter Git email address: ");
+            gitConfig.UserEmail = Console.ReadLine()?.Trim();
+
+            Console.Write("Please enter commit message: ");
+            gitConfig.CommitMessage = Console.ReadLine()?.Trim();
+
+            // Execute commit operation
+            var gitHelper = new GitHelper();
+            bool result = gitHelper.ExecuteGitCommit(gitConfig);
+
+            Console.WriteLine(result
+                ? "Commit operation executed successfully!"
+                : "Commit operation executed failed!");
         }
     }
 }
