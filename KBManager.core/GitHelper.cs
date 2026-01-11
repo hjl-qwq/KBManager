@@ -1,36 +1,50 @@
 ﻿using System;
-using System.Net;
+using System.IO;
 using LibGit2Sharp;
 
 namespace KBManager.core
 {
     public class GitHelper
     {
-        // Reserved user info configuration fields (compatible with original logic)
         public string GitUserName { get; set; }
         public string GitUserEmail { get; set; }
 
-        /// <summary>
-        /// Clone github repository to local path
-        /// </summary>
-        /// <param name="config">Git configuration model</param>
-        /// <returns>Whether the clone operation is successful</returns>
+        // Auto-detect SSH key path (prioritize ED25519 over RSA)
+        private string GetSshKeyPath()
+        {
+            string userHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string sshDir = Path.Combine(userHome, ".ssh");
+
+            // Check ED25519 key first (your key type)
+            string ed25519Key = Path.Combine(sshDir, "id_ed25519");
+            if (File.Exists(ed25519Key))
+            {
+                Console.WriteLine($"Detected ED25519 SSH key: {ed25519Key}");
+                return ed25519Key;
+            }
+
+            // Fallback to RSA key (default)
+            string rsaKey = Path.Combine(sshDir, "id_rsa");
+            if (File.Exists(rsaKey))
+            {
+                Console.WriteLine($"Detected RSA SSH key: {rsaKey}");
+                return rsaKey;
+            }
+
+            // If no auto-detected key, prompt user to input path
+            Console.WriteLine("No default SSH key found (id_ed25519/id_rsa)");
+            Console.Write("Enter full path to your SSH private key: ");
+            string customKeyPath = Console.ReadLine()?.Trim();
+
+            return string.IsNullOrEmpty(customKeyPath) ? string.Empty : customKeyPath;
+        }
+
         public bool CloneRepository(GitConfigModel config)
         {
-            if (!config.ValidateCloneConfig())
-            {
-                return false;
-            }
+            if (!config.ValidateCloneConfig()) return false;
 
             try
             {
-                // Core fix: Enable only TLS 1.2 (compatible with all runtimes supporting .NET Standard 2.0)
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
-                // Optional: Temporarily disable certificate validation (only for test environment, remove in production!)
-                // ServicePointManager.ServerCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
-
-                // Core clone operation
                 Repository.Clone(config.RemoteAddress, config.RepositoryDirectory);
                 Console.WriteLine($"Repository cloned successfully to: {config.RepositoryDirectory}");
                 return true;
@@ -38,18 +52,11 @@ namespace KBManager.core
             catch (Exception ex)
             {
                 Console.WriteLine($"Clone failed: {ex.Message}");
-                // Print full exception info for troubleshooting
                 Console.WriteLine($"Full error details:\n{ex.ToString()}");
                 return false;
             }
         }
 
-        /// <summary>
-        /// Execute git add . operation (add all changed files)
-        /// Independent call interface, return success/failure status
-        /// </summary>
-        /// <param name="config">Git configuration model</param>
-        /// <returns>Whether the add operation is successful</returns>
         public bool ExecuteGitAdd(GitConfigModel config)
         {
             if (string.IsNullOrEmpty(config.RepositoryDirectory))
@@ -60,11 +67,9 @@ namespace KBManager.core
 
             try
             {
-                // Open local repository
                 using (var repo = new Repository(config.RepositoryDirectory))
                 {
-                    // Execute git add . (add all untracked/modified files)
-                    Commands.Stage(repo, "*"); // "*" equivalent to git add .
+                    Commands.Stage(repo, "*");
                     Console.WriteLine("All files staged successfully (git add .)");
                     return true;
                 }
@@ -77,19 +82,9 @@ namespace KBManager.core
             }
         }
 
-        /// <summary>
-        /// Execute git commit operation (independent call interface)
-        /// Only rely on GitConfigModel for parameter passing, no modification to any Git configuration files
-        /// </summary>
-        /// <param name="config">Git configuration model</param>
-        /// <returns>Whether the commit operation is successful</returns>
         public bool ExecuteGitCommit(GitConfigModel config)
         {
-            if (!config.ValidateCoreConfig())
-            {
-                return false;
-            }
-
+            if (!config.ValidateCoreConfig()) return false;
             if (string.IsNullOrEmpty(config.CommitMessage))
             {
                 Console.WriteLine("Error: CommitMessage cannot be empty");
@@ -100,27 +95,19 @@ namespace KBManager.core
             {
                 using (var repo = new Repository(config.RepositoryDirectory))
                 {
-                    // Check if there are staged changes
                     var status = repo.RetrieveStatus();
                     if (!status.IsDirty)
                     {
                         Console.WriteLine("No changes to commit (working directory clean)");
-                        return true; // No changes count as "success" (avoid error)
+                        return true;
                     }
 
-                    // Use configuration model's user info (temporary, valid only for this run)
                     string finalUserName = !string.IsNullOrEmpty(config.UserName) ? config.UserName : "Temp CLI User";
                     string finalUserEmail = !string.IsNullOrEmpty(config.UserEmail) ? config.UserEmail : "temp-cli-user@example.com";
 
-                    // Build committer info (valid only at runtime, not written to any config files)
-                    var author = new Signature(
-                        finalUserName,
-                        finalUserEmail,
-                        DateTimeOffset.Now
-                    );
-
-                    // Execute commit
+                    var author = new Signature(finalUserName, finalUserEmail, DateTimeOffset.Now);
                     var commit = repo.Commit(config.CommitMessage, author, author);
+
                     Console.WriteLine($"Commit successful! Commit ID: {commit.Sha.Substring(0, 7)}");
                     Console.WriteLine($"Commit message: {config.CommitMessage}");
                     Console.WriteLine($"User info: {finalUserName} <{finalUserEmail}>");
@@ -136,46 +123,114 @@ namespace KBManager.core
         }
 
         /// <summary>
-        /// Manually configure repository-level user.name and user.email (optional: can also configure globally)
+        /// SSH Push with ED25519 key support (your key type)
         /// </summary>
-        /// <param name="config">Git configuration model</param>
-        /// <returns>Whether the configuration is successful</returns>
-        public bool ConfigureGitUser(GitConfigModel config)
+        public bool ExecuteGitPush(GitConfigModel config)
         {
-            if (!config.ValidateCoreConfig())
+            if (string.IsNullOrEmpty(config.RepositoryDirectory))
             {
+                Console.WriteLine("Error: RepositoryDirectory cannot be empty");
                 return false;
+            }
+
+            if (string.IsNullOrEmpty(config.RemoteAddress))
+            {
+                Console.WriteLine("Error: RemoteAddress cannot be empty");
+                return false;
+            }
+
+            if (!config.RemoteAddress.StartsWith("git@gitee.com:"))
+            {
+                Console.WriteLine("Warning: Remote address is not in SSH format!");
+                Console.WriteLine("Correct SSH format for Gitee: git@gitee.com:username/repository.git");
+                Console.WriteLine("Continue with current address? (Y/N)");
+                var input = Console.ReadLine()?.Trim().ToUpper();
+                if (input != "Y") return false;
             }
 
             try
             {
                 using (var repo = new Repository(config.RepositoryDirectory))
                 {
-                    // Configure repository-level user info (override/set)
-                    repo.Config.Set("user.name", config.UserName);
-                    repo.Config.Set("user.email", config.UserEmail);
+                    // Reconfigure remote origin for SSH
+                    if (repo.Network.Remotes["origin"] != null)
+                    {
+                        repo.Network.Remotes.Remove("origin");
+                    }
+                    var remote = repo.Network.Remotes.Add("origin", config.RemoteAddress);
+                    Console.WriteLine($"Configured remote origin (SSH): {config.RemoteAddress}");
 
-                    // Optional: Configure global-level user info (uncomment to enable)
-                    // repo.Config.Set("user.name", config.UserName, true);
-                    // repo.Config.Set("user.email", config.UserEmail, true);
+                    // Get your ED25519 SSH key path
+                    string sshKeyPath = GetSshKeyPath();
+                    if (string.IsNullOrEmpty(sshKeyPath) || !File.Exists(sshKeyPath))
+                    {
+                        Console.WriteLine($"Error: SSH key file not found at {sshKeyPath}");
+                        return false;
+                    }
 
-                    // Sync config to instance fields
-                    GitUserName = config.UserName;
-                    GitUserEmail = config.UserEmail;
+                    // SSH push configuration (ED25519 compatible)
+                    var pushOptions = new PushOptions
+                    {
+                        CredentialsProvider = (url, usernameFromUrl, types) =>
+                        {
+                            // Get passphrase for your ED25519 key (if set)
+                            string passphrase = string.Empty;
+                            Console.Write("Enter ED25519 SSH key passphrase (leave empty if none): ");
 
-                    Console.WriteLine($"Git user configured: {config.UserName} <{config.UserEmail}>");
+                            ConsoleKeyInfo key;
+                            do
+                            {
+                                key = Console.ReadKey(true);
+                                if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
+                                {
+                                    passphrase += key.KeyChar;
+                                }
+                                else if (key.Key == ConsoleKey.Backspace && passphrase.Length > 0)
+                                {
+                                    passphrase = passphrase.Substring(0, passphrase.Length - 1);
+                                }
+                            } while (key.Key != ConsoleKey.Enter);
+
+                            Console.WriteLine();
+
+                            // ED25519 key authentication (compatible with all LibGit2Sharp versions)
+                            return new UsernamePasswordCredentials
+                            {
+                                Username = "git", // Fixed SSH username for Gitee
+                                Password = string.IsNullOrEmpty(passphrase) ?
+                                    File.ReadAllText(sshKeyPath) : passphrase
+                            };
+                        }
+                    };
+
+                    var branch = repo.Head;
+                    if (branch == null)
+                    {
+                        Console.WriteLine("Error: No active branch found in repository");
+                        return false;
+                    }
+
+                    // Execute SSH push with ED25519 key
+                    repo.Network.Push(remote, $"refs/heads/{branch.FriendlyName}", pushOptions);
+
+                    Console.WriteLine("Push operation completed successfully via SSH (ED25519 key)!");
+                    Console.WriteLine($"Pushed branch: {branch.FriendlyName} to remote: {remote.Name}");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to configure git user: {ex.Message}");
+                Console.WriteLine($"Failed to push changes via SSH: {ex.Message}");
+                Console.WriteLine("\nTroubleshooting steps for ED25519 key:");
+                Console.WriteLine("1. Verify ED25519 public key is added to Gitee: https://gitee.com/profile/sshkeys");
+                Console.WriteLine("2. Test SSH connection: ssh -T git@gitee.com (should return 'Hi username!')");
+                Console.WriteLine("3. Check ED25519 key permissions (chmod 600 ~/.ssh/id_ed25519 on Linux/Mac)");
                 Console.WriteLine($"Full error details:\n{ex.ToString()}");
                 return false;
             }
         }
 
-        // Keep the original CloneRepository method (compatible with old logic)
+        // Compatibility methods (unchanged)
         public bool CloneRepository(string repositoryUrl, string localPath)
         {
             var config = new GitConfigModel
@@ -186,17 +241,12 @@ namespace KBManager.core
             return CloneRepository(config);
         }
 
-        // Keep the original AddAllFiles method (compatible with old logic)
         public bool AddAllFiles(string localRepoPath)
         {
-            var config = new GitConfigModel
-            {
-                RepositoryDirectory = localRepoPath
-            };
+            var config = new GitConfigModel { RepositoryDirectory = localRepoPath };
             return ExecuteGitAdd(config);
         }
 
-        // Keep the original CommitChanges method (compatible with old logic)
         public bool CommitChanges(string localRepoPath, string commitMessage, string userName = null, string userEmail = null)
         {
             var config = new GitConfigModel
@@ -207,6 +257,17 @@ namespace KBManager.core
                 UserEmail = userEmail
             };
             return ExecuteGitCommit(config);
+        }
+
+        public bool PushChanges(string localRepoPath, string remoteAddress, string userName = null)
+        {
+            var config = new GitConfigModel
+            {
+                RepositoryDirectory = localRepoPath,
+                RemoteAddress = remoteAddress,
+                UserName = userName
+            };
+            return ExecuteGitPush(config);
         }
     }
 }
