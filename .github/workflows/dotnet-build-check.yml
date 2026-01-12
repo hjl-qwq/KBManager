@@ -1,0 +1,28 @@
+name: .NET Build Check  # 工作流名称，随便起
+
+on:
+  push:
+    branches: [ master, '**' ]  # 推送任意分支（包括临时分支）都触发检查
+  pull_request:
+    branches: [ master ]  # 向master提PR时触发检查
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # 用Linux环境检查（和你之前的环境一致）
+
+    steps:
+    - uses: actions/checkout@v4  # 拉取代码到GitHub服务器
+
+    - name: Setup .NET 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x  # 匹配你的.NET 8.0 SDK
+
+    - name: Restore dependencies
+      run: dotnet restore ./KBManager.CLI/KBManager.CLI.csproj  # 还原依赖（指定你的控制台项目）
+
+    - name: Build
+      run: dotnet build ./KBManager.CLI/KBManager.CLI.csproj --no-restore --configuration Release  # 编译检查（Release模式）
+
+    - name: Code Analysis
+      run: dotnet build ./KBManager.CLI/KBManager.CLI.csproj --no-restore /p:RunCodeAnalysis=true  # 代码分析检查
