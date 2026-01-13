@@ -107,6 +107,11 @@ namespace KBManager.core
 
             string tempDirectory = config.RepositoryDirectory + ".tmp_" + Guid.NewGuid().ToString("N").Substring(0, 8);
 
+            if (string.IsNullOrEmpty(config.RemoteAddressSsh))
+            {
+                Console.WriteLine("Ssh remote address is empty, use https");
+                goto CloneViaHttps;
+            }
             try
             {
                 Repository.Clone(config.RemoteAddressSsh, tempDirectory);
@@ -131,6 +136,8 @@ namespace KBManager.core
                     Directory.Delete(tempDirectory, true);
                 }
             }
+
+CloneViaHttps:
 
             try
             {
