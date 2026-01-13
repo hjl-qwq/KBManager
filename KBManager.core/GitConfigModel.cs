@@ -69,7 +69,7 @@ namespace KBManager.core
         /// <returns>Whether validation passes</returns>
         public bool ValidateCloneConfig()
         {
-            if (string.IsNullOrEmpty(RemoteAddressHttps) && string.IsNullOrEmpty(RemoteAddressHttps))
+            if (string.IsNullOrEmpty(RemoteAddressHttps) && string.IsNullOrEmpty(RemoteAddressSsh))
             {
                 Console.WriteLine("Error: RemoteAddress cannot be both empty");
                 return false;
