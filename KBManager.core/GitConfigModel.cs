@@ -23,6 +23,16 @@ namespace KBManager.core
         public string RemoteAddress { get; set; }
 
         /// <summary>
+        /// Remote repository address (e.g. https://github.com/username/repo.git)
+        /// </summary>
+        public string RemoteAddressHttps { get; set; }
+
+        /// <summary>
+        /// Remote repository address (e.g. git@github.com:username/repo.git)
+        /// </summary>
+        public string RemoteAddressSsh { get; set; }
+
+        /// <summary>
         /// Local repository directory path
         /// </summary>
         public string RepositoryDirectory { get; set; }
@@ -59,9 +69,9 @@ namespace KBManager.core
         /// <returns>Whether validation passes</returns>
         public bool ValidateCloneConfig()
         {
-            if (string.IsNullOrEmpty(RemoteAddress))
+            if (string.IsNullOrEmpty(RemoteAddressHttps) && string.IsNullOrEmpty(RemoteAddressHttps))
             {
-                Console.WriteLine("Error: RemoteAddress cannot be empty");
+                Console.WriteLine("Error: RemoteAddress cannot be both empty");
                 return false;
             }
 
