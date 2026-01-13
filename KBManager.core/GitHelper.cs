@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Diagnostics;
+using System.Linq;
 using LibGit2Sharp;
 
 namespace KBManager.core
@@ -133,6 +134,7 @@ namespace KBManager.core
             {
                 if (Directory.Exists(tempDirectory))
                 {
+                    Directory.EnumerateFiles(tempDirectory, "*", SearchOption.AllDirectories).ToList().ForEach(file => File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly));
                     Directory.Delete(tempDirectory, true);
                 }
             }
@@ -161,6 +163,7 @@ CloneViaHttps:
             {
                 if (Directory.Exists(tempDirectory))
                 {
+                    Directory.EnumerateFiles(tempDirectory, "*", SearchOption.AllDirectories).ToList().ForEach(file => File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly));
                     Directory.Delete(tempDirectory, true);
                 }
             }
