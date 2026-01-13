@@ -59,8 +59,11 @@ namespace KBManager.CLI
             var gitConfig = new GitConfigModel();
 
             // Get clone parameters from user input
-            Console.Write("Please enter remote repository URL (e.g. https://github.com/username/repo.git): ");
-            gitConfig.RemoteAddress = Console.ReadLine()?.Trim();
+            Console.Write("Please enter remote repository URL in https (e.g. https://github.com/username/repo.git): ");
+            gitConfig.RemoteAddressHttps = Console.ReadLine()?.Trim();
+
+            Console.Write("Please enter remote repository URL in ssh (e.g. git@github.com:username/repo.git): ");
+            gitConfig.RemoteAddressSsh = Console.ReadLine()?.Trim();
 
             Console.Write("Please enter local clone path (e.g. C:\\Git\\MyRepo): ");
             gitConfig.RepositoryDirectory = Console.ReadLine()?.Trim();

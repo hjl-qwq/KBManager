@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Diagnostics;
 using LibGit2Sharp;
 
 namespace KBManager.core
@@ -8,6 +9,37 @@ namespace KBManager.core
     {
         public string GitUserName { get; set; }
         public string GitUserEmail { get; set; }
+
+        /// <summary>
+        /// Directory copy function (Fit Linux and Windows)
+        /// </summary>
+        /// <param name="sourceDir">Source directory</param>
+        /// <param name="destDir">Target directory</param>
+        /// <param name="overwrite">Overwrite or not</param>
+        private static void CopyDirectoryCrossPlatform(string sourceDir, string destDir, bool overwrite)
+        {
+            if (!Directory.Exists(sourceDir))
+            {
+                throw new DirectoryNotFoundException($"Source directory not found: {sourceDir}");
+            }
+
+            Directory.CreateDirectory(destDir);
+
+            string[] files = Directory.GetFiles(sourceDir);
+            string[] subDirs = Directory.GetDirectories(sourceDir);
+
+            foreach (string file in files)
+            {
+                string destFilePath = Path.Combine(destDir, Path.GetFileName(file));
+                File.Copy(file, destFilePath, overwrite);
+            }
+
+            foreach (string subDir in subDirs)
+            {
+                string destSubDirPath = Path.Combine(destDir, Path.GetFileName(subDir));
+                CopyDirectoryCrossPlatform(subDir, destSubDirPath, overwrite);
+            }
+        }
 
         // Auto-detect SSH key path (prioritize ED25519 over RSA)
         private string GetSshKeyPath()
@@ -41,20 +73,69 @@ namespace KBManager.core
 
         public bool CloneRepository(GitConfigModel config)
         {
+            if (config == null)
+            {
+                Console.WriteLine("Config object cannot be null.");
+                return false;
+            }
+
             if (!config.ValidateCloneConfig()) return false;
+
+            string parentDir = Path.GetDirectoryName(config.RepositoryDirectory);
+
+            string tempDirectory = config.RepositoryDirectory + ".tmp_" + Guid.NewGuid().ToString("N").Substring(0, 8);
 
             try
             {
-                Repository.Clone(config.RemoteAddress, config.RepositoryDirectory);
-                Console.WriteLine($"Repository cloned successfully to: {config.RepositoryDirectory}");
+                Repository.Clone(config.RemoteAddressSsh, tempDirectory);
+                Console.WriteLine($"Repository cloned successfully from {config.RemoteAddressSsh} to: {tempDirectory}");
+                CopyDirectoryCrossPlatform(
+                    sourceDir: tempDirectory,
+                    destDir: config.RepositoryDirectory,
+                    overwrite: false
+                );
                 return true;
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Clone failed from ssh address {config.RemoteAddressSsh}, try https");
+                Console.WriteLine($"Clone failed: {ex.Message}");
+                Console.WriteLine($"Full error details:\n{ex.ToString()}");
+            }
+            finally
+            {
+                if (Directory.Exists(tempDirectory))
+                {
+                    Directory.Delete(tempDirectory, true);
+                }
+            }
+
+            try
+            {
+                Repository.Clone(config.RemoteAddressHttps, tempDirectory);
+                Console.WriteLine($"Repository cloned successfully from {config.RemoteAddressHttps} to: {tempDirectory}");
+                CopyDirectoryCrossPlatform(
+                    sourceDir: tempDirectory,
+                    destDir: config.RepositoryDirectory,
+                    overwrite: false
+                );
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Clone failed from https address {config.RemoteAddressHttps}");
                 Console.WriteLine($"Clone failed: {ex.Message}");
                 Console.WriteLine($"Full error details:\n{ex.ToString()}");
                 return false;
             }
+            finally
+            {
+                if (Directory.Exists(tempDirectory))
+                {
+                    Directory.Delete(tempDirectory, true);
+                }
+            }
+
         }
 
         public bool ExecuteGitAdd(GitConfigModel config)
