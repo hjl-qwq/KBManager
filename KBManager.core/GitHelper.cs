@@ -11,6 +11,22 @@ namespace KBManager.core
         public string GitUserEmail { get; set; }
 
         /// <summary>
+        /// Check if directory empty
+        /// </summary>
+        /// <param name="directoryPath">target directory</param>
+        /// <returns>true = Directory exist and not empty</returns>
+        private bool IsDirectoryExistsAndNotEmpty(string directoryPath)
+        {
+            if (!Directory.Exists(directoryPath))
+            {
+                return false;
+            }
+
+            var dirInfo = new DirectoryInfo(directoryPath);
+            return dirInfo.GetFiles().Length > 0 || dirInfo.GetDirectories().Length > 0;
+        }
+
+        /// <summary>
         /// Directory copy function (Fit Linux and Windows)
         /// </summary>
         /// <param name="sourceDir">Source directory</param>
@@ -80,6 +96,12 @@ namespace KBManager.core
             }
 
             if (!config.ValidateCloneConfig()) return false;
+
+            if (IsDirectoryExistsAndNotEmpty(config.RepositoryDirectory))
+            {
+                Console.WriteLine($"Target directory is not empty: {config.RepositoryDirectory}");
+                return false;
+            }
 
             string parentDir = Path.GetDirectoryName(config.RepositoryDirectory);
 
