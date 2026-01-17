@@ -385,5 +385,43 @@ CloneViaHttps:
             };
             return ExecuteGitPush(config);
         }
+
+        public bool SaveGitConfig(GitConfigModel gitConfig)
+        {
+            if (gitConfig == null)
+            {
+                throw new ArgumentNullException(nameof(gitConfig), "gitConfig cannot be null");
+            }
+
+            var configManager = new CrossPlatformConfig<GitConfigModel>("KBManager");
+
+            try
+            {
+                configManager.WriteConfig(gitConfig);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Save GitConfig failed: {ex.Message}");
+                Console.WriteLine($"Full error details:\n{ex.ToString()}");
+                return false;
+            }
+        }
+
+        public GitConfigModel ReadGitConfig()
+        {
+            var configManager = new CrossPlatformConfig<GitConfigModel>("KBManager");
+            try
+            {
+                GitConfigModel gitConfig = configManager.ReadConfig();
+                return gitConfig;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Read GitConfig failed: {ex.Message}");
+                Console.WriteLine($"Full error details:\n{ex.ToString()}");
+                return new GitConfigModel();
+            }
+        }
     }
 }
