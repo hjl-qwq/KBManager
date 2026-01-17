@@ -395,6 +395,12 @@ CloneViaHttps:
 
             var configManager = new CrossPlatformConfig<GitConfigModel>("KBManager");
 
+            if (!gitConfig.ValidateCoreConfig() || !gitConfig.ValidateCloneConfig())
+            {
+                Console.WriteLine("Cannot pass git config validation");
+                return false;
+            }
+
             try
             {
                 configManager.WriteConfig(gitConfig);
