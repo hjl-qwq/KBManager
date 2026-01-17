@@ -3,13 +3,6 @@ using KBManager.core;
 
 namespace KBManager.CLI
 {
-    public class AppConfig
-    {
-        public string AppVersion { get; set; } = "1.0.0";
-        public string Theme { get; set; } = "Light";
-        public bool AutoSave { get; set; } = true;
-    }
-
     class Program
     {
         static void Main(string[] args)
@@ -20,18 +13,19 @@ namespace KBManager.CLI
             Console.WriteLine("2. Execute Git Add (stage all changed files)");
             Console.WriteLine("3. Execute Git Commit (commit staged changes)");
             Console.WriteLine("4. Execute Git Push (push commits to remote)");
-            Console.WriteLine("5. Test config function");
-            Console.WriteLine("6. Exit");
+            Console.WriteLine("5. Test save git config");
+            Console.WriteLine("6. Test read git config");
+            Console.WriteLine("7. Exit");
             Console.WriteLine("===================================\n");
 
             // Main loop: keep receiving user input until exit is selected
             while (true)
             {
-                Console.Write("Please enter operation number (1-6): ");
+                Console.Write("Please enter operation number (1-7): ");
                 var input = Console.ReadLine();
-                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 6)
+                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 7)
                 {
-                    Console.WriteLine("Invalid input, please enter a number between 1 and 6!\n");
+                    Console.WriteLine("Invalid input, please enter a number between 1 and 7!\n");
                     continue;
                 }
 
@@ -50,9 +44,12 @@ namespace KBManager.CLI
                         ExecutePushOperation();
                         break;
                     case 5:
-                        TestConfigFunction();
+                        SaveGitConfig();
                         break;
                     case 6:
+                        ReadGitConfig();
+                        break;
+                    case 7:
                         Console.WriteLine("Exiting program...");
                         return;
                 }
@@ -164,18 +161,52 @@ namespace KBManager.CLI
                 : "Push operation executed failed!");
         }
 
-        private static void TestConfigFunction()
+        private static void SaveGitConfig()
         {
-            var configManager = new CrossPlatformConfig<AppConfig>("KBManager");
+            var configManager = new CrossPlatformConfig<GitConfigModel>("KBManager");
 
-            AppConfig config = configManager.ReadConfig();
-            Console.WriteLine($"Current config file path: {configManager.GetConfigFilePath()}");
-            Console.WriteLine($"Current theme: {config.Theme}");
-            Console.WriteLine($"Current version: {config.AppVersion}");
+            var gitConfig = new GitConfigModel();
 
-            config.Theme = "Dark";
-            config.AutoSave = false;
-            configManager.WriteConfig(config);
+            try
+            {
+                Console.Write("Please enter Git username: ");
+                gitConfig.UserName = Console.ReadLine()?.Trim();
+
+                Console.Write("Please enter Git email address: ");
+                gitConfig.UserEmail = Console.ReadLine()?.Trim();
+
+                Console.Write("Please enter remote repository URL in https (e.g. https://github.com/username/repo.git): ");
+                gitConfig.RemoteAddressHttps = Console.ReadLine()?.Trim();
+
+                Console.Write("Please enter remote repository URL in ssh (e.g. git@github.com:username/repo.git): ");
+                gitConfig.RemoteAddressSsh = Console.ReadLine()?.Trim();
+
+                Console.Write("Please enter remote repository SSH URL (e.g. git@gitee.com:username/repo.git): ");
+                gitConfig.RemoteAddress = Console.ReadLine()?.Trim();
+
+                Console.Write("Please enter local repository directory path (e.g. C:\\Git\\MyRepo): ");
+                gitConfig.RepositoryDirectory = Console.ReadLine()?.Trim();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Save GitConfig failed: {ex.Message}");
+                Console.WriteLine($"Full error details:\n{ex.ToString()}");
+            }
+
+            configManager.WriteConfig(gitConfig);
+        }
+
+        private static void ReadGitConfig()
+        {
+            var configManager = new CrossPlatformConfig<GitConfigModel>("KBManager");
+
+            GitConfigModel gitConfig = configManager.ReadConfig();
+            Console.Write($"Current user name: {gitConfig.UserName}\n");
+            Console.Write($"Current user email: {gitConfig.UserEmail}\n");
+            Console.Write($"Current remote repository URL in https: {gitConfig.RemoteAddressHttps}\n");
+            Console.Write($"Current remote repository URL in ssh: {gitConfig.RemoteAddressSsh}\n");
+            Console.Write($"Current remote repository URL: {gitConfig.RemoteAddress}\n");
+            Console.Write($"Current repository directory: {gitConfig.RepositoryDirectory}\n");
         }
     }
 }
