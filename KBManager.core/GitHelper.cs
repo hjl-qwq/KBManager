@@ -195,10 +195,10 @@ CloneViaHttps:
             }
         }
 
-        public bool ExecuteGitCommit(GitConfigModel config)
+        public bool ExecuteGitCommit(GitConfigModel gitConfig, GitCommitModel gitCommit)
         {
-            if (!config.ValidateCoreConfig()) return false;
-            if (string.IsNullOrEmpty(config.CommitMessage))
+            if (!gitConfig.ValidateCoreConfig()) return false;
+            if (string.IsNullOrEmpty(gitCommit.CommitMessage))
             {
                 Console.WriteLine("Error: CommitMessage cannot be empty");
                 return false;
@@ -206,7 +206,7 @@ CloneViaHttps:
 
             try
             {
-                using (var repo = new Repository(config.RepositoryDirectory))
+                using (var repo = new Repository(gitConfig.RepositoryDirectory))
                 {
                     var status = repo.RetrieveStatus();
                     if (!status.IsDirty)
@@ -215,14 +215,14 @@ CloneViaHttps:
                         return true;
                     }
 
-                    string finalUserName = !string.IsNullOrEmpty(config.UserName) ? config.UserName : "Temp CLI User";
-                    string finalUserEmail = !string.IsNullOrEmpty(config.UserEmail) ? config.UserEmail : "temp-cli-user@example.com";
+                    string finalUserName = !string.IsNullOrEmpty(gitConfig.UserName) ? gitConfig.UserName : "Temp CLI User";
+                    string finalUserEmail = !string.IsNullOrEmpty(gitConfig.UserEmail) ? gitConfig.UserEmail : "temp-cli-user@example.com";
 
                     var author = new Signature(finalUserName, finalUserEmail, DateTimeOffset.Now);
-                    var commit = repo.Commit(config.CommitMessage, author, author);
+                    var commit = repo.Commit(gitCommit.CommitMessage, author, author);
 
                     Console.WriteLine($"Commit successful! Commit ID: {commit.Sha.Substring(0, 7)}");
-                    Console.WriteLine($"Commit message: {config.CommitMessage}");
+                    Console.WriteLine($"Commit message: {gitCommit.CommitMessage}");
                     Console.WriteLine($"User info: {finalUserName} <{finalUserEmail}>");
                     return true;
                 }
@@ -362,14 +362,17 @@ CloneViaHttps:
 
         public bool CommitChanges(string localRepoPath, string commitMessage, string userName = null, string userEmail = null)
         {
-            var config = new GitConfigModel
+            var gitConfig = new GitConfigModel
             {
                 RepositoryDirectory = localRepoPath,
-                CommitMessage = commitMessage,
                 UserName = userName,
                 UserEmail = userEmail
             };
-            return ExecuteGitCommit(config);
+            var gitCommit = new GitCommitModel
+            {
+                CommitMessage = commitMessage
+            };
+            return ExecuteGitCommit(gitConfig, gitCommit);
         }
 
         public bool PushChanges(string localRepoPath, string remoteAddress, string userName = null)

@@ -38,11 +38,6 @@ namespace KBManager.core
         public string RepositoryDirectory { get; set; }
 
         /// <summary>
-        /// Commit message (customizable for each commit)
-        /// </summary>
-        public string CommitMessage { get; set; }
-
-        /// <summary>
         /// Validate whether the core configuration is complete
         /// </summary>
         /// <returns>Whether validation passes</returns>
@@ -83,5 +78,16 @@ namespace KBManager.core
 
             return true;
         }
+    }
+
+    /// <summary>
+    /// Model for storing Git configuration information
+    /// </summary>
+    public class GitCommitModel
+    {
+        /// <summary>
+        /// Commit message (customizable for each commit)
+        /// </summary>
+        public string CommitMessage { get; set; }
     }
 }
