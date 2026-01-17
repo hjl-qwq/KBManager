@@ -116,6 +116,7 @@ namespace KBManager.CLI
         {
             Console.WriteLine("\n===== Executing Git Commit Operation =====");
             var gitConfig = new GitConfigModel();
+            var gitCommit = new GitCommitModel();
 
             // Get commit parameters from user input
             Console.Write("Please enter local repository directory path (e.g. C:\\Git\\MyRepo): ");
@@ -128,11 +129,11 @@ namespace KBManager.CLI
             gitConfig.UserEmail = Console.ReadLine()?.Trim();
 
             Console.Write("Please enter commit message: ");
-            gitConfig.CommitMessage = Console.ReadLine()?.Trim();
+            gitCommit.CommitMessage = Console.ReadLine()?.Trim();
 
             // Execute commit operation
             var gitHelper = new GitHelper();
-            bool result = gitHelper.ExecuteGitCommit(gitConfig);
+            bool result = gitHelper.ExecuteGitCommit(gitConfig, gitCommit);
 
             Console.WriteLine(result
                 ? "Commit operation executed successfully!"
