@@ -163,44 +163,41 @@ namespace KBManager.CLI
 
         private static void SaveGitConfig()
         {
-            var configManager = new CrossPlatformConfig<GitConfigModel>("KBManager");
-
             var gitConfig = new GitConfigModel();
+            var gitHelper = new GitHelper();
 
-            try
+            Console.Write("Please enter Git username: ");
+            gitConfig.UserName = Console.ReadLine()?.Trim();
+
+            Console.Write("Please enter Git email address: ");
+            gitConfig.UserEmail = Console.ReadLine()?.Trim();
+
+            Console.Write("Please enter remote repository URL in https (e.g. https://github.com/username/repo.git): ");
+            gitConfig.RemoteAddressHttps = Console.ReadLine()?.Trim();
+
+            Console.Write("Please enter remote repository URL in ssh (e.g. git@github.com:username/repo.git): ");
+            gitConfig.RemoteAddressSsh = Console.ReadLine()?.Trim();
+
+            Console.Write("Please enter remote repository SSH URL (e.g. git@gitee.com:username/repo.git): ");
+            gitConfig.RemoteAddress = Console.ReadLine()?.Trim();
+
+            Console.Write("Please enter local repository directory path (e.g. C:\\Git\\MyRepo): ");
+            gitConfig.RepositoryDirectory = Console.ReadLine()?.Trim();
+
+            if (gitHelper.SaveGitConfig(gitConfig))
             {
-                Console.Write("Please enter Git username: ");
-                gitConfig.UserName = Console.ReadLine()?.Trim();
-
-                Console.Write("Please enter Git email address: ");
-                gitConfig.UserEmail = Console.ReadLine()?.Trim();
-
-                Console.Write("Please enter remote repository URL in https (e.g. https://github.com/username/repo.git): ");
-                gitConfig.RemoteAddressHttps = Console.ReadLine()?.Trim();
-
-                Console.Write("Please enter remote repository URL in ssh (e.g. git@github.com:username/repo.git): ");
-                gitConfig.RemoteAddressSsh = Console.ReadLine()?.Trim();
-
-                Console.Write("Please enter remote repository SSH URL (e.g. git@gitee.com:username/repo.git): ");
-                gitConfig.RemoteAddress = Console.ReadLine()?.Trim();
-
-                Console.Write("Please enter local repository directory path (e.g. C:\\Git\\MyRepo): ");
-                gitConfig.RepositoryDirectory = Console.ReadLine()?.Trim();
+                Console.Write("Save git config successfully");
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"Save GitConfig failed: {ex.Message}");
-                Console.WriteLine($"Full error details:\n{ex.ToString()}");
+                Console.Write("Save git config failed");
             }
-
-            configManager.WriteConfig(gitConfig);
         }
 
         private static void ReadGitConfig()
         {
-            var configManager = new CrossPlatformConfig<GitConfigModel>("KBManager");
-
-            GitConfigModel gitConfig = configManager.ReadConfig();
+            var gitHelper = new GitHelper();
+            GitConfigModel gitConfig = gitHelper.ReadGitConfig();
             Console.Write($"Current user name: {gitConfig.UserName}\n");
             Console.Write($"Current user email: {gitConfig.UserEmail}\n");
             Console.Write($"Current remote repository URL in https: {gitConfig.RemoteAddressHttps}\n");
