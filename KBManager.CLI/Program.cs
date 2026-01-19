@@ -64,20 +64,11 @@ namespace KBManager.CLI
         private static void ExecuteCloneOperation()
         {
             Console.WriteLine("\n===== Executing Git Clone Operation =====");
-            var gitConfig = new GitConfigModel();
 
-            // Get clone parameters from user input
-            Console.Write("Please enter remote repository URL in https (e.g. https://github.com/username/repo.git): ");
-            gitConfig.RemoteAddressHttps = Console.ReadLine()?.Trim();
-
-            Console.Write("Please enter remote repository URL in ssh (e.g. git@github.com:username/repo.git): ");
-            gitConfig.RemoteAddressSsh = Console.ReadLine()?.Trim();
-
-            Console.Write("Please enter local clone path (e.g. C:\\Git\\MyRepo): ");
-            gitConfig.RepositoryDirectory = Console.ReadLine()?.Trim();
-
-            // Execute clone operation
             var gitHelper = new GitHelper();
+
+            GitConfigModel gitConfig = gitHelper.ReadGitConfig();
+
             bool result = gitHelper.CloneRepository(gitConfig);
 
             Console.WriteLine(result
@@ -91,14 +82,11 @@ namespace KBManager.CLI
         private static void ExecuteAddOperation()
         {
             Console.WriteLine("\n===== Executing Git Add Operation =====");
-            var gitConfig = new GitConfigModel();
 
-            // Get local repository path from user input
-            Console.Write("Please enter local repository directory path (e.g. C:\\Git\\MyRepo): ");
-            gitConfig.RepositoryDirectory = Console.ReadLine()?.Trim();
-
-            // Execute add operation
             var gitHelper = new GitHelper();
+
+            GitConfigModel gitConfig = gitHelper.ReadGitConfig();
+
             bool result = gitHelper.ExecuteGitAdd(gitConfig);
 
             Console.WriteLine(result
@@ -112,24 +100,16 @@ namespace KBManager.CLI
         private static void ExecuteCommitOperation()
         {
             Console.WriteLine("\n===== Executing Git Commit Operation =====");
-            var gitConfig = new GitConfigModel();
+
+            var gitHelper = new GitHelper();
+
+            GitConfigModel gitConfig = gitHelper.ReadGitConfig();
+
             var gitCommit = new GitCommitModel();
-
-            // Get commit parameters from user input
-            Console.Write("Please enter local repository directory path (e.g. C:\\Git\\MyRepo): ");
-            gitConfig.RepositoryDirectory = Console.ReadLine()?.Trim();
-
-            Console.Write("Please enter Git username: ");
-            gitConfig.UserName = Console.ReadLine()?.Trim();
-
-            Console.Write("Please enter Git email address: ");
-            gitConfig.UserEmail = Console.ReadLine()?.Trim();
 
             Console.Write("Please enter commit message: ");
             gitCommit.CommitMessage = Console.ReadLine()?.Trim();
 
-            // Execute commit operation
-            var gitHelper = new GitHelper();
             bool result = gitHelper.ExecuteGitCommit(gitConfig, gitCommit);
 
             Console.WriteLine(result
@@ -143,17 +123,11 @@ namespace KBManager.CLI
         private static void ExecutePushOperation()
         {
             Console.WriteLine("\n===== Executing Git Push Operation =====");
-            var gitConfig = new GitConfigModel();
 
-            // Get push parameters from user input
-            Console.Write("Please enter local repository directory path (e.g. C:\\Git\\MyRepo): ");
-            gitConfig.RepositoryDirectory = Console.ReadLine()?.Trim();
-
-            Console.Write("Please enter remote repository URL in ssh (e.g. git@github.com:username/repo.git): ");
-            gitConfig.RemoteAddressSsh = Console.ReadLine()?.Trim();
-
-            // Execute push operation
             var gitHelper = new GitHelper();
+
+            GitConfigModel gitConfig = gitHelper.ReadGitConfig();
+
             bool result = gitHelper.ExecuteGitPush(gitConfig);
 
             Console.WriteLine(result
