@@ -246,19 +246,10 @@ CloneViaHttps:
                 return false;
             }
 
-            if (string.IsNullOrEmpty(config.RemoteAddress))
+            if (string.IsNullOrEmpty(config.RemoteAddressSsh))
             {
-                Console.WriteLine("Error: RemoteAddress cannot be empty");
+                Console.WriteLine("Error: SSH remote address cannot be both empty");
                 return false;
-            }
-
-            if (!config.RemoteAddress.StartsWith("git@gitee.com:"))
-            {
-                Console.WriteLine("Warning: Remote address is not in SSH format!");
-                Console.WriteLine("Correct SSH format for Gitee: git@gitee.com:username/repository.git");
-                Console.WriteLine("Continue with current address? (Y/N)");
-                var input = Console.ReadLine()?.Trim().ToUpper();
-                if (input != "Y") return false;
             }
 
             try
@@ -270,8 +261,8 @@ CloneViaHttps:
                     {
                         repo.Network.Remotes.Remove("origin");
                     }
-                    var remote = repo.Network.Remotes.Add("origin", config.RemoteAddress);
-                    Console.WriteLine($"Configured remote origin (SSH): {config.RemoteAddress}");
+                    var remote = repo.Network.Remotes.Add("origin", config.RemoteAddressSsh);
+                    Console.WriteLine($"Configured remote origin (SSH): {config.RemoteAddressSsh}");
 
                     // Get your ED25519 SSH key path
                     string sshKeyPath = GetSshKeyPath();

@@ -149,8 +149,8 @@ namespace KBManager.CLI
             Console.Write("Please enter local repository directory path (e.g. C:\\Git\\MyRepo): ");
             gitConfig.RepositoryDirectory = Console.ReadLine()?.Trim();
 
-            Console.Write("Please enter remote repository SSH URL (e.g. git@gitee.com:username/repo.git): ");
-            gitConfig.RemoteAddress = Console.ReadLine()?.Trim();
+            Console.Write("Please enter remote repository URL in ssh (e.g. git@github.com:username/repo.git): ");
+            gitConfig.RemoteAddressSsh = Console.ReadLine()?.Trim();
 
             // Execute push operation
             var gitHelper = new GitHelper();
