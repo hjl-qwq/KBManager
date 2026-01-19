@@ -334,49 +334,6 @@ CloneViaHttps:
             }
         }
 
-        // Compatibility methods (unchanged)
-        public bool CloneRepository(string repositoryUrl, string localPath)
-        {
-            var config = new GitConfigModel
-            {
-                RemoteAddress = repositoryUrl,
-                RepositoryDirectory = localPath
-            };
-            return CloneRepository(config);
-        }
-
-        public bool AddAllFiles(string localRepoPath)
-        {
-            var config = new GitConfigModel { RepositoryDirectory = localRepoPath };
-            return ExecuteGitAdd(config);
-        }
-
-        public bool CommitChanges(string localRepoPath, string commitMessage, string userName = null, string userEmail = null)
-        {
-            var gitConfig = new GitConfigModel
-            {
-                RepositoryDirectory = localRepoPath,
-                UserName = userName,
-                UserEmail = userEmail
-            };
-            var gitCommit = new GitCommitModel
-            {
-                CommitMessage = commitMessage
-            };
-            return ExecuteGitCommit(gitConfig, gitCommit);
-        }
-
-        public bool PushChanges(string localRepoPath, string remoteAddress, string userName = null)
-        {
-            var config = new GitConfigModel
-            {
-                RepositoryDirectory = localRepoPath,
-                RemoteAddress = remoteAddress,
-                UserName = userName
-            };
-            return ExecuteGitPush(config);
-        }
-
         public bool SaveGitConfig(GitConfigModel gitConfig)
         {
             if (gitConfig == null)

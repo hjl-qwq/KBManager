@@ -178,9 +178,6 @@ namespace KBManager.CLI
             Console.Write("Please enter remote repository URL in ssh (e.g. git@github.com:username/repo.git): ");
             gitConfig.RemoteAddressSsh = Console.ReadLine()?.Trim();
 
-            Console.Write("Please enter remote repository SSH URL (e.g. git@gitee.com:username/repo.git): ");
-            gitConfig.RemoteAddress = Console.ReadLine()?.Trim();
-
             Console.Write("Please enter local repository directory path (e.g. C:\\Git\\MyRepo): ");
             gitConfig.RepositoryDirectory = Console.ReadLine()?.Trim();
 
@@ -202,7 +199,6 @@ namespace KBManager.CLI
             Console.Write($"Current user email: {gitConfig.UserEmail}\n");
             Console.Write($"Current remote repository URL in https: {gitConfig.RemoteAddressHttps}\n");
             Console.Write($"Current remote repository URL in ssh: {gitConfig.RemoteAddressSsh}\n");
-            Console.Write($"Current remote repository URL: {gitConfig.RemoteAddress}\n");
             Console.Write($"Current repository directory: {gitConfig.RepositoryDirectory}\n");
         }
     }
