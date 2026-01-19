@@ -27,5 +27,6 @@
 		<PackageReference Include="LibGit2Sharp" Version="0.31.0" />
 		<PackageReference Include="LibGit2Sharp.NativeBinaries" Version="2.0.323" />
 		<PackageReference Include="System.Text.Json" Version="10.0.2" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.26" />
 	</ItemGroup>
 </Project>

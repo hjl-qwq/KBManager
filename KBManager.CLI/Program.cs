@@ -5,7 +5,7 @@ namespace KBManager.CLI
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             Console.WriteLine("===== Git Operation CLI Tool =====");
             Console.WriteLine("Please select the Git operation to execute:");
@@ -15,17 +15,18 @@ namespace KBManager.CLI
             Console.WriteLine("4. Execute Git Push (push commits to remote)");
             Console.WriteLine("5. Test save git config");
             Console.WriteLine("6. Test read git config");
-            Console.WriteLine("7. Exit");
+            Console.WriteLine("7. Create database");
+            Console.WriteLine("8. Exit");
             Console.WriteLine("===================================\n");
 
             // Main loop: keep receiving user input until exit is selected
             while (true)
             {
-                Console.Write("Please enter operation number (1-7): ");
+                Console.Write("Please enter operation number (1-8): ");
                 var input = Console.ReadLine();
-                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 7)
+                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 8)
                 {
-                    Console.WriteLine("Invalid input, please enter a number between 1 and 7!\n");
+                    Console.WriteLine("Invalid input, please enter a number between 1 and 8!\n");
                     continue;
                 }
 
@@ -50,6 +51,9 @@ namespace KBManager.CLI
                         ReadGitConfig();
                         break;
                     case 7:
+                        await ExecuteCreateDatabase();
+                        break;
+                    case 8:
                         Console.WriteLine("Exiting program...");
                         return;
                 }
@@ -174,6 +178,12 @@ namespace KBManager.CLI
             Console.Write($"Current remote repository URL in https: {gitConfig.RemoteAddressHttps}\n");
             Console.Write($"Current remote repository URL in ssh: {gitConfig.RemoteAddressSsh}\n");
             Console.Write($"Current repository directory: {gitConfig.RepositoryDirectory}\n");
+        }
+
+        private static async Task ExecuteCreateDatabase()
+        {
+            var dbHelper = new DbHelper();
+            await dbHelper.CreateDb();
         }
     }
 }
