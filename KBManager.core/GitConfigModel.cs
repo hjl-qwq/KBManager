@@ -20,11 +20,6 @@ namespace KBManager.core
         /// <summary>
         /// Remote repository address (e.g. https://github.com/username/repo.git)
         /// </summary>
-        public string RemoteAddress { get; set; }
-
-        /// <summary>
-        /// Remote repository address (e.g. https://github.com/username/repo.git)
-        /// </summary>
         public string RemoteAddressHttps { get; set; }
 
         /// <summary>
