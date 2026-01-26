@@ -16,15 +16,16 @@ namespace KBManager.CLI
             Console.WriteLine("5. Test save git config");
             Console.WriteLine("6. Test read git config");
             Console.WriteLine("7. Create database");
-            Console.WriteLine("8. Exit");
+            Console.WriteLine("8. Add filename to database");
+            Console.WriteLine("9. Exit");
             Console.WriteLine("===================================\n");
 
             // Main loop: keep receiving user input until exit is selected
             while (true)
             {
-                Console.Write("Please enter operation number (1-8): ");
+                Console.Write("Please enter operation number (1-9): ");
                 var input = Console.ReadLine();
-                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 8)
+                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 9)
                 {
                     Console.WriteLine("Invalid input, please enter a number between 1 and 8!\n");
                     continue;
@@ -54,6 +55,9 @@ namespace KBManager.CLI
                         await ExecuteCreateDatabase();
                         break;
                     case 8:
+                        await ExecuteAddFileToDatabase();
+                        break;
+                    case 9:
                         Console.WriteLine("Exiting program...");
                         return;
                 }
@@ -184,6 +188,22 @@ namespace KBManager.CLI
         {
             var dbHelper = new DbHelper();
             await dbHelper.CreateDb();
+        }
+
+        private static async Task ExecuteAddFileToDatabase()
+        {
+            Console.WriteLine("\n===== Executing Add File To Database Operation =====");
+
+            Console.Write("Please enter the filename to add to database: ");
+            string? inputFileName = Console.ReadLine();
+            string fileName = inputFileName?.Trim() ?? string.Empty;
+
+            var dbHelper = new DbHelper();
+            bool result = await dbHelper.AddFileAsync(fileName);
+
+            Console.WriteLine(result
+                ? "Add filename to database successfully!"
+                : "Add filename to database failed!");
         }
     }
 }
