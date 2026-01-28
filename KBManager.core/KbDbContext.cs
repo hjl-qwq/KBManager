@@ -55,6 +55,11 @@ namespace KBManager.core
             }
         }
 
+        public bool CheckDatabseExists()
+        {
+            return File.Exists(Path.Combine(_dbDirectory, DbName));
+        }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             string dbPath = Path.Combine(_dbDirectory, DbName);
