@@ -17,17 +17,18 @@ namespace KBManager.CLI
             Console.WriteLine("6. Test read git config");
             Console.WriteLine("7. Create database");
             Console.WriteLine("8. Add filename to database");
-            Console.WriteLine("9. Exit");
+            Console.WriteLine("9. List filename in database");
+            Console.WriteLine("10. Exit");
             Console.WriteLine("===================================\n");
 
             // Main loop: keep receiving user input until exit is selected
             while (true)
             {
-                Console.Write("Please enter operation number (1-9): ");
+                Console.Write("Please enter operation number (1-10): ");
                 var input = Console.ReadLine();
-                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 9)
+                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 10)
                 {
-                    Console.WriteLine("Invalid input, please enter a number between 1 and 8!\n");
+                    Console.WriteLine("Invalid input, please enter a number between 1 and 10!\n");
                     continue;
                 }
 
@@ -58,6 +59,9 @@ namespace KBManager.CLI
                         await ExecuteAddFileToDatabase();
                         break;
                     case 9:
+                        await ExecuteListAllFilesWithTagsAsync();
+                        break;
+                    case 10:
                         Console.WriteLine("Exiting program...");
                         return;
                 }
@@ -204,6 +208,15 @@ namespace KBManager.CLI
             Console.WriteLine(result
                 ? "Add filename to database successfully!"
                 : "Add filename to database failed!");
+        }
+
+        private static async Task ExecuteListAllFilesWithTagsAsync()
+        {
+            Console.WriteLine("\n===== List filename in database =====");
+
+            var dbHelper = new DbHelper();
+            await dbHelper.ListAllFilesWithTagsAsync();
+
         }
     }
 }
