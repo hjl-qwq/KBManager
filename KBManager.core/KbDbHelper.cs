@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
 using System;
 
 namespace KBManager.core
@@ -75,6 +76,51 @@ namespace KBManager.core
             {
                 Console.WriteLine($"Failed to add file: {ex.Message}");
                 return false;
+            }
+        }
+
+        public async Task ListAllFilesWithTagsAsync()
+        {
+            Console.WriteLine("Start listing all files with tags");
+            var gitHelper = new GitHelper();
+            GitConfigModel gitConfig = gitHelper.ReadGitConfig();
+
+            try
+            {
+                using (var context = new FileTagDbContext(gitConfig.RepositoryDirectory))
+                {
+                    var filesWithTags = await context.Files
+                        .Include(f => f.Tags)
+                        .ToListAsync();
+
+                    if (filesWithTags.Count == 0)
+                    {
+                        Console.WriteLine("No files found in database");
+                        return;
+                    }
+
+                    Console.WriteLine("=====================================");
+                    foreach (var file in filesWithTags)
+                    {
+                        Console.WriteLine($"File Name: {file.FileName}");
+
+                        if (file.Tags == null || file.Tags.Count == 0)
+                        {
+                            Console.WriteLine("Tags: None");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Tags: {string.Join(", ", file.Tags.Select(t => t.TagName))}");
+                        }
+                        Console.WriteLine("-------------------------------------");
+                    }
+                    Console.WriteLine("=====================================");
+                    Console.WriteLine($"Total files listed: {filesWithTags.Count}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to list files with tags: {ex.Message}");
             }
         }
     }
