@@ -53,6 +53,12 @@ namespace KBManager.core
             {
                 using (var context = new FileTagDbContext(gitConfig.RepositoryDirectory))
                 {
+                    if (!context.CheckDatabseExists())
+                    {
+                        Console.WriteLine("There's no database, create one first");
+                        return false;
+                    }
+
                     bool isFileExists = await context.Files.AnyAsync(f => f.FileName == fileName);
                     if (isFileExists)
                     {
@@ -89,6 +95,12 @@ namespace KBManager.core
             {
                 using (var context = new FileTagDbContext(gitConfig.RepositoryDirectory))
                 {
+                    if (!context.CheckDatabseExists())
+                    {
+                        Console.WriteLine("There's no database, create one first");
+                        return;
+                    }
+
                     var filesWithTags = await context.Files
                         .Include(f => f.Tags)
                         .ToListAsync();
