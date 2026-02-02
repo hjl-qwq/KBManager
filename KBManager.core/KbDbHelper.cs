@@ -135,5 +135,71 @@ namespace KBManager.core
                 Console.WriteLine($"Failed to list files with tags: {ex.Message}");
             }
         }
+
+        public async Task<bool> AddTagToFileAsync(string fileName, string tagName)
+        {
+            Console.WriteLine("Start add tag to file");
+            var gitHelper = new GitHelper();
+            GitConfigModel gitConfig = gitHelper.ReadGitConfig();
+
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                Console.WriteLine("File name cannot be empty or whitespace");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(tagName))
+            {
+                Console.WriteLine("Tag name cannot be empty or whitespace");
+                return false;
+            }
+
+            try
+            {
+                using (var context = new FileTagDbContext(gitConfig.RepositoryDirectory))
+                {
+                    if (!context.CheckDatabseExists())
+                    {
+                        Console.WriteLine("There's no database, create one first");
+                        return false;
+                    }
+
+                    var file = await context.Files.Include(f => f.Tags).FirstOrDefaultAsync(f => f.FileName == fileName);
+                    if (file == null)
+                    {
+                        Console.WriteLine($"File '{fileName}' does not exist in database");
+                        return false;
+                    }
+
+                    bool isTagExists = file.Tags.Any(t => t.TagName == tagName);
+                    if (isTagExists)
+                    {
+                        Console.WriteLine($"Tag '{tagName}' already exists for file '{fileName}'");
+                        return false;
+                    }
+
+                    var tag = await context.Tags.FirstOrDefaultAsync(t => t.TagName == tagName);
+                    if (tag == null)
+                    {
+                        tag = new Tag
+                        {
+                            TagName = tagName
+                        };
+                        context.Tags.Add(tag);
+                    }
+
+                    file.Tags.Add(tag);
+                    await context.SaveChangesAsync();
+
+                    Console.WriteLine($"Tag '{tagName}' added to file '{fileName}' successfully");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to add tag to file: {ex.Message}");
+                return false;
+            }
+        }
     }
 }
