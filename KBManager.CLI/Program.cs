@@ -19,17 +19,18 @@ namespace KBManager.CLI
             Console.WriteLine("8. Add filename to database");
             Console.WriteLine("9. List filename in database");
             Console.WriteLine("10. Add tag to filename");
-            Console.WriteLine("11. Exit");
+            Console.WriteLine("11. Find file through tag");
+            Console.WriteLine("12. Exit");
             Console.WriteLine("===================================\n");
 
             // Main loop: keep receiving user input until exit is selected
             while (true)
             {
-                Console.Write("Please enter operation number (1-11): ");
+                Console.Write("Please enter operation number (1-12): ");
                 var input = Console.ReadLine();
-                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 11)
+                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 12)
                 {
-                    Console.WriteLine("Invalid input, please enter a number between 1 and 11!\n");
+                    Console.WriteLine("Invalid input, please enter a number between 1 and 12!\n");
                     continue;
                 }
 
@@ -66,6 +67,9 @@ namespace KBManager.CLI
                         await ExecuteAddTagToFileAsync();
                         break;
                     case 11:
+                        await ExecuteFindFileThroughTagAsync();
+                        break;
+                    case 12:
                         Console.WriteLine("Exiting program...");
                         return;
                 }
@@ -235,6 +239,17 @@ namespace KBManager.CLI
             Console.Write("Please enter tag: ");
             tag = Console.ReadLine()?.Trim();
             await dbHelper.AddTagToFileAsync(fileName, tag);
+        }
+
+        private static async Task ExecuteFindFileThroughTagAsync()
+        {
+            Console.WriteLine("\n===== Find file through tag =====");
+            var dbHelper = new DbHelper();
+            string? tag;
+            Console.Write("Please enter tag: ");
+            tag = Console.ReadLine()?.Trim();
+
+            await dbHelper.SearchFilesByTagAsync(tag);
         }
     }
 }
