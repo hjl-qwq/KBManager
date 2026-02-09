@@ -201,5 +201,55 @@ namespace KBManager.core
                 return false;
             }
         }
+
+        public async Task SearchFilesByTagAsync(string tagName)
+        {
+            Console.WriteLine("Start searching files by tag");
+            var gitHelper = new GitHelper();
+            GitConfigModel gitConfig = gitHelper.ReadGitConfig();
+
+            if (string.IsNullOrWhiteSpace(tagName))
+            {
+                Console.WriteLine("Tag name cannot be empty or whitespace");
+                return;
+            }
+
+            try
+            {
+                using (var context = new FileTagDbContext(gitConfig.RepositoryDirectory))
+                {
+                    if (!context.CheckDatabseExists())
+                    {
+                        Console.WriteLine("There's no database, create one first");
+                        return;
+                    }
+
+                    var filesWithTag = await context.Tags
+                        .Include(t => t.Files)
+                        .FirstOrDefaultAsync(t => t.TagName == tagName);
+
+                    if (filesWithTag == null || filesWithTag.Files.Count == 0)
+                    {
+                        Console.WriteLine($"No files found with tag '{tagName}'");
+                        return;
+                    }
+
+                    Console.WriteLine("=====================================");
+                    Console.WriteLine($"Files with tag '{tagName}':");
+                    Console.WriteLine("-------------------------------------");
+                    foreach (var file in filesWithTag.Files)
+                    {
+                        Console.WriteLine($"File Name: {file.FileName}");
+                    }
+                    Console.WriteLine("-------------------------------------");
+                    Console.WriteLine($"Total files found: {filesWithTag.Files.Count}");
+                    Console.WriteLine("=====================================");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to search files by tag: {ex.Message}");
+            }
+        }
     }
 }
