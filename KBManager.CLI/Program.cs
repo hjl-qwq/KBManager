@@ -23,17 +23,18 @@ namespace KBManager.CLI
             Console.WriteLine("12. Remove tag from file");
             Console.WriteLine("13. Remove file");
             Console.WriteLine("14. Show all tag");
-            Console.WriteLine("15. Exit");
+            Console.WriteLine("15. Add files in repository to database");
+            Console.WriteLine("16. Exit");
             Console.WriteLine("===================================\n");
 
             // Main loop: keep receiving user input until exit is selected
             while (true)
             {
-                Console.Write("Please enter operation number (1-15): ");
+                Console.Write("Please enter operation number (1-16): ");
                 var input = Console.ReadLine();
-                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 15)
+                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 16)
                 {
-                    Console.WriteLine("Invalid input, please enter a number between 1 and 15!\n");
+                    Console.WriteLine("Invalid input, please enter a number between 1 and 16!\n");
                     continue;
                 }
 
@@ -82,6 +83,9 @@ namespace KBManager.CLI
                         await ExecuteListAllTagsAsync();
                         break;
                     case 15:
+                        await ExecuteScanAndAddFilesFromGitConfigAsync();
+                        break;
+                    case 16:
                         Console.WriteLine("Exiting program...");
                         return;
                 }
@@ -295,6 +299,14 @@ namespace KBManager.CLI
 
             var dbHelper = new DbHelper();
             await dbHelper.ListAllTagsAsync();
+        }
+
+        private static async Task ExecuteScanAndAddFilesFromGitConfigAsync()
+        {
+            Console.WriteLine("\n===== Add files in repository to database =====");
+
+            var fileManager = new KbFileManager();
+            await fileManager.ScanAndAddFilesFromGitConfigAsync();
         }
     }
 }
