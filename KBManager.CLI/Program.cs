@@ -21,17 +21,18 @@ namespace KBManager.CLI
             Console.WriteLine("10. Add tag to filename");
             Console.WriteLine("11. Find file through tag");
             Console.WriteLine("12. Remove tag from file");
-            Console.WriteLine("13. Exit");
+            Console.WriteLine("13. Remove file");
+            Console.WriteLine("14. Exit");
             Console.WriteLine("===================================\n");
 
             // Main loop: keep receiving user input until exit is selected
             while (true)
             {
-                Console.Write("Please enter operation number (1-13): ");
+                Console.Write("Please enter operation number (1-14): ");
                 var input = Console.ReadLine();
-                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 13)
+                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 14)
                 {
-                    Console.WriteLine("Invalid input, please enter a number between 1 and 13!\n");
+                    Console.WriteLine("Invalid input, please enter a number between 1 and 14!\n");
                     continue;
                 }
 
@@ -74,6 +75,9 @@ namespace KBManager.CLI
                         await ExecuteRemoveTagFromFileAsync();
                         break;
                     case 13:
+                        await ExecuteDeleteFileAsync();
+                        break;
+                    case 14:
                         Console.WriteLine("Exiting program...");
                         return;
                 }
@@ -268,6 +272,17 @@ namespace KBManager.CLI
             tag = Console.ReadLine()?.Trim();
 
             await dbHelper.RemoveTagFromFileAsync(fileName, tag);
+        }
+
+        private static async Task ExecuteDeleteFileAsync()
+        {
+            var dbHelper = new DbHelper();
+            string? fileName;
+
+            Console.Write("Please enter filename: ");
+            fileName = Console.ReadLine()?.Trim();
+
+            await dbHelper.DeleteFileAsync(fileName);
         }
     }
 }

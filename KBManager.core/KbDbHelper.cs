@@ -310,5 +310,51 @@ namespace KBManager.core
                 return false;
             }
         }
+
+        public async Task<bool> DeleteFileAsync(string fileName)
+        {
+            Console.WriteLine("Start delete file");
+            var gitHelper = new GitHelper();
+            GitConfigModel gitConfig = gitHelper.ReadGitConfig();
+
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                Console.WriteLine("File name cannot be empty or whitespace");
+                return false;
+            }
+
+            try
+            {
+                using (var context = new FileTagDbContext(gitConfig.RepositoryDirectory))
+                {
+                    if (!context.CheckDatabseExists())
+                    {
+                        Console.WriteLine("There's no database, create one first");
+                        return false;
+                    }
+
+                    var file = await context.Files
+                        .Include(f => f.Tags)
+                        .FirstOrDefaultAsync(f => f.FileName == fileName);
+
+                    if (file == null)
+                    {
+                        Console.WriteLine($"File '{fileName}' does not exist in database");
+                        return false;
+                    }
+
+                    context.Files.Remove(file);
+                    await context.SaveChangesAsync();
+
+                    Console.WriteLine($"File '{fileName}' deleted successfully");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to delete file: {ex.Message}");
+                return false;
+            }
+        }
     }
 }
