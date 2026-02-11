@@ -55,7 +55,7 @@ namespace KBManager.core
             }
         }
 
-        public bool CheckDatabseExists()
+        public bool CheckDatabaseExists()
         {
             return File.Exists(Path.Combine(_dbDirectory, DbName));
         }

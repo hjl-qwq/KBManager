@@ -53,7 +53,7 @@ namespace KBManager.core
             {
                 using (var context = new FileTagDbContext(gitConfig.RepositoryDirectory))
                 {
-                    if (!context.CheckDatabseExists())
+                    if (!context.CheckDatabaseExists())
                     {
                         Console.WriteLine("There's no database, create one first");
                         return false;
@@ -95,7 +95,7 @@ namespace KBManager.core
             {
                 using (var context = new FileTagDbContext(gitConfig.RepositoryDirectory))
                 {
-                    if (!context.CheckDatabseExists())
+                    if (!context.CheckDatabaseExists())
                     {
                         Console.WriteLine("There's no database, create one first");
                         return;
@@ -158,7 +158,7 @@ namespace KBManager.core
             {
                 using (var context = new FileTagDbContext(gitConfig.RepositoryDirectory))
                 {
-                    if (!context.CheckDatabseExists())
+                    if (!context.CheckDatabaseExists())
                     {
                         Console.WriteLine("There's no database, create one first");
                         return false;
@@ -218,7 +218,7 @@ namespace KBManager.core
             {
                 using (var context = new FileTagDbContext(gitConfig.RepositoryDirectory))
                 {
-                    if (!context.CheckDatabseExists())
+                    if (!context.CheckDatabaseExists())
                     {
                         Console.WriteLine("There's no database, create one first");
                         return;
@@ -274,7 +274,7 @@ namespace KBManager.core
             {
                 using (var context = new FileTagDbContext(gitConfig.RepositoryDirectory))
                 {
-                    if (!context.CheckDatabseExists())
+                    if (!context.CheckDatabaseExists())
                     {
                         Console.WriteLine("There's no database, create one first");
                         return false;
@@ -327,7 +327,7 @@ namespace KBManager.core
             {
                 using (var context = new FileTagDbContext(gitConfig.RepositoryDirectory))
                 {
-                    if (!context.CheckDatabseExists())
+                    if (!context.CheckDatabaseExists())
                     {
                         Console.WriteLine("There's no database, create one first");
                         return false;
