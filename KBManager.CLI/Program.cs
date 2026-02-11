@@ -22,17 +22,18 @@ namespace KBManager.CLI
             Console.WriteLine("11. Find file through tag");
             Console.WriteLine("12. Remove tag from file");
             Console.WriteLine("13. Remove file");
-            Console.WriteLine("14. Exit");
+            Console.WriteLine("14. Show all tag");
+            Console.WriteLine("15. Exit");
             Console.WriteLine("===================================\n");
 
             // Main loop: keep receiving user input until exit is selected
             while (true)
             {
-                Console.Write("Please enter operation number (1-14): ");
+                Console.Write("Please enter operation number (1-15): ");
                 var input = Console.ReadLine();
-                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 14)
+                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 15)
                 {
-                    Console.WriteLine("Invalid input, please enter a number between 1 and 14!\n");
+                    Console.WriteLine("Invalid input, please enter a number between 1 and 15!\n");
                     continue;
                 }
 
@@ -78,6 +79,9 @@ namespace KBManager.CLI
                         await ExecuteDeleteFileAsync();
                         break;
                     case 14:
+                        await ExecuteListAllTagsAsync();
+                        break;
+                    case 15:
                         Console.WriteLine("Exiting program...");
                         return;
                 }
@@ -283,6 +287,14 @@ namespace KBManager.CLI
             fileName = Console.ReadLine()?.Trim();
 
             await dbHelper.DeleteFileAsync(fileName);
+        }
+
+        private static async Task ExecuteListAllTagsAsync()
+        {
+            Console.WriteLine("\n===== List tags in database =====");
+
+            var dbHelper = new DbHelper();
+            await dbHelper.ListAllTagsAsync();
         }
     }
 }
