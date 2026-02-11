@@ -343,10 +343,31 @@ namespace KBManager.core
                         return false;
                     }
 
+                    var associatedTags = file.Tags.ToList();
+
                     context.Files.Remove(file);
                     await context.SaveChangesAsync();
 
                     Console.WriteLine($"File '{fileName}' deleted successfully");
+
+                    foreach (var tag in associatedTags)
+                    {
+                        var tagInDb = await context.Tags
+                            .Include(t => t.Files)
+                            .FirstOrDefaultAsync(t => t.Id == tag.Id);
+
+                        if (tagInDb != null && tagInDb.Files.Count == 0)
+                        {
+                            context.Tags.Remove(tagInDb);
+                            Console.WriteLine($"Tag '{tagInDb.TagName}' is unused, deleted automatically");
+                        }
+                    }
+
+                    if (associatedTags.Any())
+                    {
+                        await context.SaveChangesAsync();
+                    }
+
                     return true;
                 }
             }
