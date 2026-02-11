@@ -356,5 +356,45 @@ namespace KBManager.core
                 return false;
             }
         }
+
+        public async Task ListAllTagsAsync()
+        {
+            Console.WriteLine("Start listing all tags");
+            var gitHelper = new GitHelper();
+            GitConfigModel gitConfig = gitHelper.ReadGitConfig();
+
+            try
+            {
+                using (var context = new FileTagDbContext(gitConfig.RepositoryDirectory))
+                {
+                    if (!context.CheckDatabaseExists())
+                    {
+                        Console.WriteLine("There's no database, create one first");
+                        return;
+                    }
+
+                    var allTags = await context.Tags.ToListAsync();
+
+                    if (allTags.Count == 0)
+                    {
+                        Console.WriteLine("No tags found in database");
+                        return;
+                    }
+
+                    Console.WriteLine("=====================================");
+                    foreach (var tag in allTags)
+                    {
+                        Console.WriteLine($"Tag Name: {tag.TagName}");
+                        Console.WriteLine("-------------------------------------");
+                    }
+                    Console.WriteLine("=====================================");
+                    Console.WriteLine($"Total tags listed: {allTags.Count}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to list all tags: {ex.Message}");
+            }
+        }
     }
 }
