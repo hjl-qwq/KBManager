@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using KBManager.core;
 using KBManager.GUI.Services;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,6 +20,16 @@ public partial class FileEntryDisplay : ObservableObject
 
     [ObservableProperty]
     private bool _isSelected;
+}
+
+/// <summary>
+/// Display model for a tag suggestion in the autocomplete dropdown.
+/// </summary>
+public partial class TagSuggestion : ObservableObject
+{
+    public string TagName { get; set; } = string.Empty;
+    public int FileCount { get; set; }
+    public string DisplayText => $"{TagName}  ({FileCount} 个文件)";
 }
 
 /// <summary>
@@ -41,10 +52,143 @@ public partial class SearchViewModel : ViewModelBase
     [ObservableProperty]
     private bool _hasResults;
 
+    // --- Tag suggestion / autocomplete ---
+
+    /// <summary>All tags loaded from the database, cached for filtering.</summary>
+    private List<TagWithCountDto> _allTagsCache = new();
+
+    /// <summary>Filtered suggestions shown in the dropdown popup.</summary>
+    [ObservableProperty]
+    private ObservableCollection<TagSuggestion> _tagSuggestions = new();
+
+    /// <summary>Whether the suggestion dropdown is visible.</summary>
+    [ObservableProperty]
+    private bool _isSuggestionOpen;
+
+    /// <summary>True when tags have been loaded (even if empty).</summary>
+    private bool _tagsLoaded;
+
+    /// <summary>
+    /// Set to true while programmatically changing SearchTag (e.g. selecting
+    /// a suggestion) to prevent OnSearchTagChanged from clearing the ListBox
+    /// ItemsSource mid-selection and crashing Avalonia.
+    /// </summary>
+    private bool _suppressSuggestionFilter;
+
     public SearchViewModel(IKnowledgeBaseService kbService, GitHelper gitHelper)
     {
         _kbService = kbService;
         _gitHelper = gitHelper;
+    }
+
+    /// <summary>
+    /// Called by CommunityToolkit.Mvvm whenever SearchTag changes.
+    /// Filters the cached tag list and updates the suggestion dropdown.
+    /// </summary>
+    partial void OnSearchTagChanged(string value)
+    {
+        if (!_suppressSuggestionFilter)
+            FilterSuggestions(value);
+    }
+
+    /// <summary>
+    /// Load all tags from the database (with file counts) and cache them.
+    /// Called when the user focuses the search TextBox.
+    /// </summary>
+    [RelayCommand]
+    private async Task LoadSuggestionsAsync()
+    {
+        if (_tagsLoaded) return;
+
+        var config = _gitHelper.ReadGitConfig();
+        if (string.IsNullOrWhiteSpace(config.RepositoryDirectory))
+            return;
+
+        try
+        {
+            var result = await _kbService.GetTagsWithFileCountAsync(config.RepositoryDirectory);
+            if (result.Success && result.Data != null)
+            {
+                _allTagsCache = result.Data;
+                _tagsLoaded = true;
+                FilterSuggestions(SearchTag);
+            }
+        }
+        catch
+        {
+            // Silently ignore load failures — suggestions are non-critical
+        }
+    }
+
+    /// <summary>
+    /// Filter cached tags by the current search text (fuzzy / contains match).
+    /// </summary>
+    private void FilterSuggestions(string filter)
+    {
+        TagSuggestions.Clear();
+
+        if (!_tagsLoaded || string.IsNullOrWhiteSpace(filter))
+        {
+            // Show all tags sorted by file count when input is empty
+            var source = _tagsLoaded
+                ? _allTagsCache
+                : new List<TagWithCountDto>();
+
+            foreach (var tag in source)
+            {
+                TagSuggestions.Add(new TagSuggestion
+                {
+                    TagName = tag.TagName,
+                    FileCount = tag.FileCount
+                });
+            }
+
+            IsSuggestionOpen = TagSuggestions.Count > 0;
+            return;
+        }
+
+        // Case-insensitive contains match
+        var filtered = _allTagsCache
+            .Where(t => t.TagName.Contains(filter, System.StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var tag in filtered)
+        {
+            TagSuggestions.Add(new TagSuggestion
+            {
+                TagName = tag.TagName,
+                FileCount = tag.FileCount
+            });
+        }
+
+        IsSuggestionOpen = TagSuggestions.Count > 0;
+    }
+
+    /// <summary>
+    /// Select a tag suggestion: fill the search box and auto-search.
+    /// </summary>
+    [RelayCommand]
+    private async Task SelectSuggestionAsync(TagSuggestion? suggestion)
+    {
+        if (suggestion == null) return;
+
+        // Suppress OnSearchTagChanged so we don't mutate TagSuggestions
+        // while the ListBox is still processing SelectionChanged.
+        _suppressSuggestionFilter = true;
+        SearchTag = suggestion.TagName;
+        _suppressSuggestionFilter = false;
+
+        IsSuggestionOpen = false;
+        await SearchAsync();
+    }
+
+    /// <summary>
+    /// Close the suggestion dropdown (e.g. when TextBox loses focus).
+    /// </summary>
+    [RelayCommand]
+    private void CloseSuggestions()
+    {
+        IsSuggestionOpen = false;
     }
 
     [RelayCommand]

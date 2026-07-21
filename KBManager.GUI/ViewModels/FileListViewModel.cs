@@ -213,8 +213,17 @@ public partial class FileListViewModel : ViewModelBase
     //  Tag Auto-Complete
     // =========================================================================
 
+    /// <summary>
+    /// Set while programmatically changing NewTagName (e.g. clicking a
+    /// suggestion) to prevent OnNewTagNameChanged from replacing the
+    /// ListBox ItemsSource mid-selection and crashing Avalonia.
+    /// </summary>
+    private bool _suppressTagFilter;
+
     partial void OnNewTagNameChanged(string value)
     {
+        if (_suppressTagFilter) return;
+
         if (string.IsNullOrWhiteSpace(value))
         {
             TagSuggestions.Clear();
@@ -231,14 +240,20 @@ public partial class FileListViewModel : ViewModelBase
         TagSuggestions = new ObservableCollection<string>(suggestions);
     }
 
+    /// <summary>
+    /// Double-click a suggestion: directly add the tag without extra clicks.
+    /// </summary>
     [RelayCommand]
-    private void SelectSuggestion(string suggestion)
+    private async Task AddTagDirectlyAsync(string tagName)
     {
-        if (!string.IsNullOrWhiteSpace(suggestion))
-        {
-            NewTagName = suggestion;
-            TagSuggestions.Clear();
-        }
+        if (string.IsNullOrWhiteSpace(tagName)) return;
+
+        _suppressTagFilter = true;
+        NewTagName = tagName;
+        _suppressTagFilter = false;
+        TagSuggestions.Clear();
+
+        await AddTagAsync();
     }
 
     // =========================================================================

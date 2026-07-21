@@ -3,7 +3,7 @@
              xmlns:vm="clr-namespace:KBManager.GUI.ViewModels"
              x:Class="KBManager.GUI.Views.SearchView"
              x:DataType="vm:SearchViewModel">
-    <Grid RowDefinitions="Auto,Auto,*" Margin="24,20">
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="24,20">
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
@@ -17,8 +17,9 @@
         </StackPanel>
 
         <!-- Search Bar -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
             <TextBox Grid.Column="0"
+                     x:Name="TagTextBox"
                      Classes="input"
                      Text="{Binding SearchTag}"
                      Watermark="输入标签名称..."
@@ -30,8 +31,58 @@
                     Width="100" />
         </Grid>
 
-        <!-- Results Table -->
+        <!-- Tag Suggestion Dropdown -->
         <Border Grid.Row="2"
+                IsVisible="{Binding IsSuggestionOpen}"
+                BorderBrush="{DynamicResource BorderDefaultColor}"
+                BorderThickness="1"
+                CornerRadius="0,0,4,4"
+                Background="{DynamicResource BackgroundDefaultColor}"
+                Margin="0,0,0,8"
+                MaxHeight="220">
+            <ListBox x:Name="SuggestionListBox"
+                     ItemsSource="{Binding TagSuggestions}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     Padding="0,4">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TagSuggestion">
+                        <Grid ColumnDefinitions="*,Auto"
+                              Margin="0,1"
+                              Height="32"
+                              Background="Transparent">
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding TagName}"
+                                       FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryColor}"
+                                       VerticalAlignment="Center"
+                                       Margin="12,0,8,0" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding FileCount, StringFormat='{}{0} 个文件'}"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextMutedColor}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,12,0" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+                <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="Padding" Value="0" />
+                    </Style>
+                    <Style Selector="ListBoxItem:pointerover">
+                        <Setter Property="Background" Value="{DynamicResource BackgroundHoverColor}" />
+                    </Style>
+                    <Style Selector="ListBoxItem:selected">
+                        <Setter Property="Background" Value="{DynamicResource BackgroundSelectedColor}" />
+                    </Style>
+                </ListBox.Styles>
+            </ListBox>
+        </Border>
+
+        <!-- Results Table -->
+        <Border Grid.Row="3"
                 BorderBrush="{DynamicResource BorderDefaultColor}"
                 BorderThickness="1"
                 CornerRadius="4">

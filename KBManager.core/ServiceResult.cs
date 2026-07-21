@@ -42,4 +42,13 @@ namespace KBManager.core
     {
         public string TagName { get; set; } = string.Empty;
     }
+
+    /// <summary>
+    /// DTO for tag with file count, used for autocomplete / suggestion lists.
+    /// </summary>
+    public class TagWithCountDto
+    {
+        public string TagName { get; set; } = string.Empty;
+        public int FileCount { get; set; }
+    }
 }

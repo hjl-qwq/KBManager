@@ -302,5 +302,36 @@ namespace KBManager.core
                 return ServiceResult<List<TagEntryDto>>.Fail($"Failed to list tags: {ex.Message}");
             }
         }
+
+        public async Task<ServiceResult<List<TagWithCountDto>>> GetTagsWithFileCountAsync(string repositoryDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(repositoryDirectory))
+                return ServiceResult<List<TagWithCountDto>>.Fail("Repository directory is required.");
+
+            try
+            {
+                using var context = new FileTagDbContext(repositoryDirectory);
+                if (!context.CheckDatabaseExists())
+                    return ServiceResult<List<TagWithCountDto>>.Fail("Database does not exist.");
+
+                var tags = await context.Tags
+                    .Include(t => t.Files)
+                    .OrderByDescending(t => t.Files.Count)
+                    .ThenBy(t => t.TagName)
+                    .ToListAsync();
+
+                var dtos = tags.Select(t => new TagWithCountDto
+                {
+                    TagName = t.TagName,
+                    FileCount = t.Files.Count
+                }).ToList();
+
+                return ServiceResult<List<TagWithCountDto>>.Ok(dtos, $"Found {dtos.Count} tag(s).");
+            }
+            catch (Exception ex)
+            {
+                return ServiceResult<List<TagWithCountDto>>.Fail($"Failed to get tags: {ex.Message}");
+            }
+        }
     }
 }
