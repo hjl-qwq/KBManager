@@ -119,6 +119,7 @@
                         <TextBlock Text="添加新标签" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryColor}" />
                         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
                             <TextBox Grid.Row="0" Grid.Column="0"
+                                     x:Name="TagInputTextBox"
                                      Classes="input"
                                      Text="{Binding NewTagName}"
                                      Watermark="输入标签名..."
@@ -131,6 +132,7 @@
 
                             <!-- Suggestions dropdown -->
                             <ListBox Grid.Row="1" Grid.Column="0"
+                                     x:Name="TagSuggestionListBox"
                                      ItemsSource="{Binding TagSuggestions}"
                                      Margin="0,2,8,0" MaxHeight="160"
                                      BorderBrush="{DynamicResource BorderDefaultColor}" BorderThickness="1" Background="{DynamicResource BackgroundDefaultColor}">

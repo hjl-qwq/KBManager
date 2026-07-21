@@ -17,6 +17,7 @@ namespace KBManager.core
         Task<ServiceResult> RemoveTagFromFileAsync(string repositoryDirectory, string fileName, string tagName);
         Task<ServiceResult> DeleteFileAsync(string repositoryDirectory, string fileName);
         Task<ServiceResult<List<TagEntryDto>>> ListAllTagsAsync(string repositoryDirectory);
+        Task<ServiceResult<List<TagWithCountDto>>> GetTagsWithFileCountAsync(string repositoryDirectory);
         Task<ServiceResult<FileEntryDto?>> GetFileWithTagsAsync(string repositoryDirectory, string fileName);
     }
 }
