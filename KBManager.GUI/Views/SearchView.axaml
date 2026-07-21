@@ -67,6 +67,7 @@
                                 <TextBlock Grid.Column="0"
                                            Text="{Binding FileName}"
                                            FontSize="13"
+                                           Foreground="#333"
                                            VerticalAlignment="Center"
                                            Margin="8,0" />
                                 <TextBlock Grid.Column="1"

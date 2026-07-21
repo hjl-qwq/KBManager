@@ -471,7 +471,9 @@ CloneViaHttps:
         /// SSH Push with ED25519 key support.
         /// Pushes submodules first, then the main repository.
         /// </summary>
-        public bool ExecuteGitPush(GitConfigModel config)
+        /// <param name="config">Git configuration</param>
+        /// <param name="passphrase">SSH key passphrase (empty if none). When null, prompts via console.</param>
+        public bool ExecuteGitPush(GitConfigModel config, string? passphrase = null)
         {
             if (string.IsNullOrEmpty(config.RepositoryDirectory))
             {
@@ -493,7 +495,7 @@ CloneViaHttps:
                 return false;
             }
 
-            string passphrase = ReadPassphrase();
+            string actualPassphrase = passphrase ?? ReadPassphrase();
 
             try
             {
@@ -505,7 +507,7 @@ CloneViaHttps:
                         string subPath = Path.GetFullPath(Path.Combine(config.RepositoryDirectory, submodule.Path));
                         if (!Repository.IsValid(subPath)) continue;
 
-                        PushSubmodule(subPath, submodule.Name, sshKeyPath, passphrase);
+                        PushSubmodule(subPath, submodule.Name, sshKeyPath, actualPassphrase);
                     }
                 }
 
@@ -527,8 +529,8 @@ CloneViaHttps:
                             new UsernamePasswordCredentials
                             {
                                 Username = "git",
-                                Password = string.IsNullOrEmpty(passphrase) ?
-                                    File.ReadAllText(sshKeyPath) : passphrase
+                                Password = string.IsNullOrEmpty(actualPassphrase) ?
+                                    File.ReadAllText(sshKeyPath) : actualPassphrase
                             }
                     };
 

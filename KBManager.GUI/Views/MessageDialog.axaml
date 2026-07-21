@@ -5,11 +5,16 @@
         x:DataType="views:MessageDialog"
         Width="420" Height="200"
         WindowStartupLocation="CenterOwner"
-        CanResize="False">
+        CanResize="False"
+        Background="White"
+        Foreground="#333">
     <Window.Styles>
         <Style Selector="Button.primary">
             <Setter Property="Background" Value="#0078D4" />
             <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="#333" />
         </Style>
     </Window.Styles>
     <Grid RowDefinitions="*,Auto" Margin="24,20">
@@ -17,6 +22,7 @@
                    Text="{Binding Message}"
                    TextWrapping="Wrap"
                    FontSize="14"
+                   Foreground="#333"
                    VerticalAlignment="Center" />
         <Button Grid.Row="1"
                 Classes="primary"

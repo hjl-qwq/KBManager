@@ -36,7 +36,8 @@
                             <TextBlock Grid.Row="0" Grid.Column="0"
                                        Text="用户名"
                                        VerticalAlignment="Center"
-                                       FontSize="13" />
+                                       FontSize="13"
+                                       Foreground="#555" />
                             <TextBox Grid.Row="0" Grid.Column="1"
                                      Classes="input"
                                      Text="{Binding UserName}"
@@ -46,7 +47,8 @@
                             <TextBlock Grid.Row="1" Grid.Column="0"
                                        Text="邮箱"
                                        VerticalAlignment="Center"
-                                       FontSize="13" />
+                                       FontSize="13"
+                                       Foreground="#555" />
                             <TextBox Grid.Row="1" Grid.Column="1"
                                      Classes="input"
                                      Text="{Binding UserEmail}"
@@ -72,7 +74,8 @@
                             <TextBlock Grid.Row="0" Grid.Column="0"
                                        Text="HTTPS 地址"
                                        VerticalAlignment="Center"
-                                       FontSize="13" />
+                                       FontSize="13"
+                                       Foreground="#555" />
                             <TextBox Grid.Row="0" Grid.Column="1"
                                      Classes="input"
                                      Text="{Binding RemoteHttps}"
@@ -82,7 +85,8 @@
                             <TextBlock Grid.Row="1" Grid.Column="0"
                                        Text="SSH 地址"
                                        VerticalAlignment="Center"
-                                       FontSize="13" />
+                                       FontSize="13"
+                                       Foreground="#555" />
                             <TextBox Grid.Row="1" Grid.Column="1"
                                      Classes="input"
                                      Text="{Binding RemoteSsh}"
