@@ -1,0 +1,177 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:KBManager.GUI.ViewModels"
+             x:Class="KBManager.GUI.Views.FileListView"
+             x:DataType="vm:FileListViewModel">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="24,20">
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <TextBlock Text="📁 文件管理"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="#333"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="{Binding FileSummary}"
+                           FontSize="13"
+                           Foreground="#888"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock Text="管理知识库文件及其标签"
+                       FontSize="13"
+                       Foreground="#888" />
+        </StackPanel>
+
+        <!-- Toolbar -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+            <Button Classes="primary" Content="🔄 同步文件" Command="{Binding SyncFilesCommand}" />
+            <Button Classes="secondary"
+                    Content="📝 打开编辑"
+                    Command="{Binding OpenFileCommand}"
+                    IsEnabled="{Binding HasSelection}" />
+            <Button Classes="danger"
+                    Content="🗑 移除记录"
+                    Command="{Binding RemoveFileCommand}"
+                    IsEnabled="{Binding HasSelection}" />
+        </StackPanel>
+
+        <!-- Main Content: File Table + Tag Editor -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,320">
+            <!-- File List -->
+            <Border Grid.Column="0"
+                    BorderBrush="#E0E0E0"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Margin="0,0,12,0">
+                <Grid RowDefinitions="Auto,*">
+                    <!-- Table Header -->
+                    <Grid Grid.Row="0"
+                          ColumnDefinitions="*,80"
+                          Background="#F5F5F5"
+                          Height="36">
+                        <TextBlock Grid.Column="0"
+                                   Text="  文件名"
+                                   FontWeight="SemiBold"
+                                   FontSize="12"
+                                   Foreground="#666"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
+                                   Text="标签数"
+                                   FontWeight="SemiBold"
+                                   FontSize="12"
+                                   Foreground="#666"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+
+                    <!-- File ListBox -->
+                    <ListBox Grid.Row="1"
+                             ItemsSource="{Binding Files}"
+                             SelectedItem="{Binding SelectedFile, Mode=TwoWay}"
+                             BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,80"
+                                      Margin="0,1"
+                                      Height="34">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding FileName}"
+                                               FontSize="13"
+                                               VerticalAlignment="Center"
+                                               Margin="8,0"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding TagCount}"
+                                               FontSize="12"
+                                               Foreground="#0078D4"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- Tag Editor Panel -->
+            <Border Grid.Column="1"
+                    BorderBrush="#E0E0E0"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="16">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="标签编辑"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="#333" />
+
+                    <!-- Selected File Info -->
+                    <Border Background="#F5F5F5"
+                            CornerRadius="4"
+                            Padding="10">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="当前文件"
+                                       FontSize="11"
+                                       Foreground="#888" />
+                            <TextBlock Text="{Binding SelectedFile.FileName, FallbackValue='(未选择)'}"
+                                       FontSize="13"
+                                       Foreground="#333"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Current Tags -->
+                    <Border Background="#F5F5F5"
+                            CornerRadius="4"
+                            Padding="10">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="现有标签"
+                                       FontSize="11"
+                                       Foreground="#888" />
+                            <TextBlock Text="{Binding SelectedFileTags, FallbackValue='(未选择文件)'}"
+                                       FontSize="13"
+                                       Foreground="#0078D4"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Add Tag -->
+                    <Separator Background="#E0E0E0" />
+                    <TextBlock Text="添加新标签"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Foreground="#555" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Grid.Column="0"
+                                 Classes="input"
+                                 Text="{Binding NewTagName}"
+                                 Watermark="输入标签名..."
+                                 IsEnabled="{Binding HasSelection}"
+                                 Margin="0,0,8,0" />
+                        <Button Grid.Column="1"
+                                Classes="primary"
+                                Content="➕"
+                                Command="{Binding AddTagCommand}"
+                                IsEnabled="{Binding HasSelection}"
+                                Width="44"
+                                ToolTip.Tip="添加标签" />
+                    </Grid>
+
+                    <!-- Quick Remove Tag Buttons -->
+                    <TextBlock Text="快捷操作"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Foreground="#555"
+                               Margin="0,8,0,0" />
+                    <TextBlock Text="选择文件后，可在此处快速移除标签"
+                               FontSize="11"
+                               Foreground="#888"
+                               IsVisible="{Binding HasSelection}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Page Load Trigger handled in code-behind -->
+        <Grid Grid.Row="3" Height="0" />
+    </Grid>
+</UserControl>

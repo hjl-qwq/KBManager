@@ -1,0 +1,132 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:KBManager.GUI.ViewModels"
+             x:Class="KBManager.GUI.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <Grid RowDefinitions="Auto,*" Margin="24,20">
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,24">
+            <TextBlock Text="⚙ 设置"
+                       FontSize="20"
+                       FontWeight="SemiBold"
+                       Foreground="#333" />
+            <TextBlock Text="配置用户信息、仓库地址和本地目录"
+                       FontSize="13"
+                       Foreground="#888" />
+        </StackPanel>
+
+        <!-- Settings Form -->
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="16" MaxWidth="600">
+                <!-- Section: Git User -->
+                <Border Background="#F8F8F8"
+                        CornerRadius="6"
+                        Padding="20">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Git 用户信息"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Foreground="#333" />
+                        <TextBlock Text="用于 Git 提交的用户名和邮箱"
+                                   FontSize="12"
+                                   Foreground="#888" />
+
+                        <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                       Text="用户名"
+                                       VerticalAlignment="Center"
+                                       FontSize="13" />
+                            <TextBox Grid.Row="0" Grid.Column="1"
+                                     Classes="input"
+                                     Text="{Binding UserName}"
+                                     Watermark="如: Zhang San"
+                                     Margin="0,0,0,8" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                       Text="邮箱"
+                                       VerticalAlignment="Center"
+                                       FontSize="13" />
+                            <TextBox Grid.Row="1" Grid.Column="1"
+                                     Classes="input"
+                                     Text="{Binding UserEmail}"
+                                     Watermark="如: zhangsan@example.com" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Section: Remote -->
+                <Border Background="#F8F8F8"
+                        CornerRadius="6"
+                        Padding="20">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="远程仓库"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Foreground="#333" />
+                        <TextBlock Text="远程 Git 仓库地址（支持 HTTPS 和 SSH）"
+                                   FontSize="12"
+                                   Foreground="#888" />
+
+                        <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                       Text="HTTPS 地址"
+                                       VerticalAlignment="Center"
+                                       FontSize="13" />
+                            <TextBox Grid.Row="0" Grid.Column="1"
+                                     Classes="input"
+                                     Text="{Binding RemoteHttps}"
+                                     Watermark="https://github.com/user/repo.git"
+                                     Margin="0,0,0,8" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                       Text="SSH 地址"
+                                       VerticalAlignment="Center"
+                                       FontSize="13" />
+                            <TextBox Grid.Row="1" Grid.Column="1"
+                                     Classes="input"
+                                     Text="{Binding RemoteSsh}"
+                                     Watermark="git@github.com:user/repo.git" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Section: Local Directory -->
+                <Border Background="#F8F8F8"
+                        CornerRadius="6"
+                        Padding="20">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="本地仓库目录"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Foreground="#333" />
+                        <TextBlock Text="知识库在本地文件系统中的位置"
+                                   FontSize="12"
+                                   Foreground="#888" />
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBox Grid.Column="0"
+                                     Classes="input"
+                                     Text="{Binding RepositoryDirectory}"
+                                     Watermark="选择或输入仓库目录路径..."
+                                     Margin="0,0,8,0" />
+                            <Button Grid.Column="1"
+                                    Classes="secondary"
+                                    Content="📂 浏览"
+                                    Command="{Binding BrowseDirectoryCommand}"
+                                    Width="100" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Save Button -->
+                <Button Classes="primary"
+                        Content="💾 保存配置"
+                        Command="{Binding SaveConfigCommand}"
+                        HorizontalAlignment="Left"
+                        Width="140"
+                        Margin="0,8,0,0" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
