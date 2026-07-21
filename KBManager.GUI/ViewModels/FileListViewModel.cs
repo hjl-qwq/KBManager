@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using KBManager.core;
 using KBManager.GUI.Services;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,7 +10,17 @@ using System.Threading.Tasks;
 namespace KBManager.GUI.ViewModels;
 
 /// <summary>
+/// Display model for a single tag with a remove button.
+/// </summary>
+public partial class FileTagItem : ObservableObject
+{
+    public string TagName { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// ViewModel for the File List / Tag Management page.
+/// Features: TreeView, tag chips with removal, auto-complete suggestions,
+/// preserves selection across tag edits.
 /// </summary>
 public partial class FileListViewModel : ViewModelBase
 {
@@ -19,23 +30,38 @@ public partial class FileListViewModel : ViewModelBase
     private readonly IFileOpener _fileOpener;
     private readonly IDialogService _dialogService;
 
-    [ObservableProperty]
-    private ObservableCollection<FileEntryDisplay> _files = new();
+    // Allowed markdown extensions (must match FileScanService)
+    private static readonly HashSet<string> MdExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdwn"
+    };
+
+    private static bool IsMarkdownFile(string fileName) =>
+        MdExtensions.Contains(System.IO.Path.GetExtension(fileName));
+
+    private List<FileEntryDto> _fileEntries = new();
+    private HashSet<string> _allTags = new();
 
     [ObservableProperty]
-    private FileEntryDisplay? _selectedFile;
+    private ObservableCollection<FileTreeNode> _fileTree = new();
+
+    [ObservableProperty]
+    private FileTreeNode? _selectedNode;
 
     [ObservableProperty]
     private string _newTagName = string.Empty;
 
     [ObservableProperty]
-    private string _selectedFileTags = string.Empty;
+    private ObservableCollection<FileTagItem> _currentTags = new();
 
     [ObservableProperty]
     private bool _hasSelection;
 
     [ObservableProperty]
     private string _fileSummary = "共 0 个文件";
+
+    [ObservableProperty]
+    private ObservableCollection<string> _tagSuggestions = new();
 
     public FileListViewModel(
         IKnowledgeBaseService kbService,
@@ -51,9 +77,10 @@ public partial class FileListViewModel : ViewModelBase
         _dialogService = dialogService;
     }
 
-    /// <summary>
-    /// Called when the page becomes active — load files.
-    /// </summary>
+    // =========================================================================
+    //  Load & Build Tree
+    // =========================================================================
+
     [RelayCommand]
     public async Task LoadFilesAsync()
     {
@@ -68,22 +95,13 @@ public partial class FileListViewModel : ViewModelBase
         try
         {
             var result = await _kbService.ListFilesWithTagsAsync(config.RepositoryDirectory);
-            Files.Clear();
-            if (result.Success && result.Data != null)
-            {
-                foreach (var file in result.Data)
-                {
-                    Files.Add(new FileEntryDisplay
-                    {
-                        FileName = file.FileName,
-                        TagsDisplay = file.Tags.Count > 0
-                            ? string.Join(", ", file.Tags)
-                            : "—",
-                        TagCount = file.Tags.Count
-                    });
-                }
-            }
-            FileSummary = $"共 {Files.Count} 个文件";
+            _fileEntries = result.Success && result.Data != null
+                ? result.Data.Where(f => IsMarkdownFile(f.FileName)).ToList()
+                : new();
+            _allTags = _fileEntries.SelectMany(f => f.Tags).ToHashSet();
+
+            BuildFileTree();
+            FileSummary = $"共 {_fileEntries.Count} 个文件";
             ClearBusy(FileSummary);
         }
         catch (System.Exception ex)
@@ -93,20 +111,88 @@ public partial class FileListViewModel : ViewModelBase
         }
     }
 
-    /// <summary>
-    /// Handle selection change — refresh selected file's tags.
-    /// </summary>
-    partial void OnSelectedFileChanged(FileEntryDisplay? value)
+    private void BuildFileTree()
     {
-        HasSelection = value != null;
-        if (value != null)
+        var root = new ObservableCollection<FileTreeNode>();
+
+        foreach (var entry in _fileEntries.OrderBy(f => f.FileName))
         {
-            _ = RefreshSelectedFileTagsAsync(value.FileName);
+            var parts = entry.FileName.Replace('\\', '/').Split('/');
+            var current = root;
+
+            for (int i = 0; i < parts.Length; i++)
+            {
+                var isFile = i == parts.Length - 1;
+                var name = parts[i];
+                var existing = current.FirstOrDefault(n => n.Name == name);
+
+                if (existing != null)
+                {
+                    if (isFile)
+                    {
+                        existing.TagCount = entry.Tags.Count;
+                        existing.FullPath = entry.FileName;
+                        existing.IsDirectory = false;
+                    }
+                    current = existing.Children;
+                }
+                else
+                {
+                    var node = new FileTreeNode
+                    {
+                        Name = name,
+                        IsDirectory = !isFile,
+                        FullPath = isFile ? entry.FileName : null,
+                        TagCount = isFile ? entry.Tags.Count : 0,
+                        IsExpanded = !isFile
+                    };
+                    current.Add(node);
+                    current = node.Children;
+                }
+            }
         }
+
+        var selectedPath = SelectedNode?.FullPath;
+        FileTree = root;
+
+        if (selectedPath != null)
+            RestoreSelection(selectedPath);
+    }
+
+    private void RestoreSelection(string fullPath)
+    {
+        foreach (var node in FlattenTree(FileTree))
+        {
+            if (node.FullPath == fullPath)
+            {
+                SelectedNode = node;
+                node.IsSelected = true;
+                break;
+            }
+        }
+    }
+
+    private static IEnumerable<FileTreeNode> FlattenTree(IEnumerable<FileTreeNode> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            yield return node;
+            foreach (var child in FlattenTree(node.Children))
+                yield return child;
+        }
+    }
+
+    // =========================================================================
+    //  Selection
+    // =========================================================================
+
+    partial void OnSelectedNodeChanged(FileTreeNode? value)
+    {
+        HasSelection = value != null && !value.IsDirectory;
+        if (value != null && !value.IsDirectory)
+            _ = RefreshSelectedFileTagsAsync(value.FullPath!);
         else
-        {
-            SelectedFileTags = string.Empty;
-        }
+            CurrentTags.Clear();
     }
 
     private async Task RefreshSelectedFileTagsAsync(string fileName)
@@ -115,21 +201,54 @@ public partial class FileListViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(config.RepositoryDirectory)) return;
 
         var result = await _kbService.GetFileWithTagsAsync(config.RepositoryDirectory, fileName);
+        CurrentTags.Clear();
         if (result.Success && result.Data != null)
         {
-            SelectedFileTags = result.Data.Tags.Count > 0
-                ? string.Join(", ", result.Data.Tags)
-                : "(无标签)";
+            foreach (var tag in result.Data.Tags)
+                CurrentTags.Add(new FileTagItem { TagName = tag });
         }
     }
 
-    /// <summary>
-    /// Add a tag to the selected file.
-    /// </summary>
+    // =========================================================================
+    //  Tag Auto-Complete
+    // =========================================================================
+
+    partial void OnNewTagNameChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            TagSuggestions.Clear();
+            return;
+        }
+
+        var suggestions = _allTags
+            .Where(t => t.StartsWith(value, System.StringComparison.OrdinalIgnoreCase)
+                     && !CurrentTags.Any(ct => ct.TagName == t))
+            .OrderBy(t => t)
+            .Take(8)
+            .ToList();
+
+        TagSuggestions = new ObservableCollection<string>(suggestions);
+    }
+
+    [RelayCommand]
+    private void SelectSuggestion(string suggestion)
+    {
+        if (!string.IsNullOrWhiteSpace(suggestion))
+        {
+            NewTagName = suggestion;
+            TagSuggestions.Clear();
+        }
+    }
+
+    // =========================================================================
+    //  Add / Remove Tags (preserves selection)
+    // =========================================================================
+
     [RelayCommand]
     private async Task AddTagAsync()
     {
-        if (SelectedFile == null || string.IsNullOrWhiteSpace(NewTagName))
+        if (SelectedNode == null || SelectedNode.IsDirectory || string.IsNullOrWhiteSpace(NewTagName))
         {
             StatusMessage = "请先选择文件并输入标签";
             return;
@@ -140,45 +259,49 @@ public partial class FileListViewModel : ViewModelBase
 
         SetBusy("添加标签...");
         var result = await _kbService.AddTagToFileAsync(
-            config.RepositoryDirectory, SelectedFile.FileName, NewTagName.Trim());
+            config.RepositoryDirectory, SelectedNode.FullPath!, NewTagName.Trim());
 
         if (result.Success)
         {
+            _allTags.Add(NewTagName.Trim());
             NewTagName = string.Empty;
-            await RefreshSelectedFileTagsAsync(SelectedFile.FileName);
-            await LoadFilesAsync(); // refresh the list
+            TagSuggestions.Clear();
+            await RefreshSelectedFileTagsAsync(SelectedNode.FullPath!);
+            SelectedNode.TagCount = CurrentTags.Count;
+            var entry = _fileEntries.FirstOrDefault(f => f.FileName == SelectedNode.FullPath);
+            if (entry != null) entry.Tags = CurrentTags.Select(t => t.TagName).ToList();
         }
 
         ClearBusy(result.Message);
     }
 
-    /// <summary>
-    /// Remove a specific tag from the selected file.
-    /// </summary>
     [RelayCommand]
-    private async Task RemoveTagAsync(string tagName)
+    private async Task RemoveTagAsync(FileTagItem? tagItem)
     {
-        if (SelectedFile == null || string.IsNullOrWhiteSpace(tagName)) return;
+        if (SelectedNode == null || SelectedNode.IsDirectory || tagItem == null) return;
 
         var config = _gitHelper.ReadGitConfig();
         if (string.IsNullOrWhiteSpace(config.RepositoryDirectory)) return;
 
         SetBusy("移除标签...");
         var result = await _kbService.RemoveTagFromFileAsync(
-            config.RepositoryDirectory, SelectedFile.FileName, tagName);
+            config.RepositoryDirectory, SelectedNode.FullPath!, tagItem.TagName);
 
         if (result.Success)
         {
-            await RefreshSelectedFileTagsAsync(SelectedFile.FileName);
-            await LoadFilesAsync();
+            await RefreshSelectedFileTagsAsync(SelectedNode.FullPath!);
+            SelectedNode.TagCount = CurrentTags.Count;
+            var entry = _fileEntries.FirstOrDefault(f => f.FileName == SelectedNode.FullPath);
+            if (entry != null) entry.Tags = CurrentTags.Select(t => t.TagName).ToList();
         }
 
         ClearBusy(result.Message);
     }
 
-    /// <summary>
-    /// Sync files from disk to database.
-    /// </summary>
+    // =========================================================================
+    //  Sync
+    // =========================================================================
+
     [RelayCommand]
     private async Task SyncFilesAsync()
     {
@@ -195,17 +318,18 @@ public partial class FileListViewModel : ViewModelBase
         ClearBusy(result.Message);
     }
 
-    /// <summary>
-    /// Remove selected file from database.
-    /// </summary>
+    // =========================================================================
+    //  Remove file from DB
+    // =========================================================================
+
     [RelayCommand]
     private async Task RemoveFileAsync()
     {
-        if (SelectedFile == null) return;
+        if (SelectedNode == null || SelectedNode.IsDirectory) return;
 
         var confirmed = await _dialogService.ConfirmAsync(
             "确认删除",
-            $"确定要从数据库中移除 \"{SelectedFile.FileName}\" 吗？\n\n⚠ 这只会删除数据库记录，不会删除实际文件。");
+            $"确定要从数据库中移除 \"{SelectedNode.Name}\" 吗？\n\n⚠ 这只会删除数据库记录，不会删除实际文件。");
 
         if (!confirmed) return;
 
@@ -213,40 +337,26 @@ public partial class FileListViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(config.RepositoryDirectory)) return;
 
         SetBusy("删除中...");
-        var result = await _kbService.DeleteFileAsync(config.RepositoryDirectory, SelectedFile.FileName);
+        var result = await _kbService.DeleteFileAsync(config.RepositoryDirectory, SelectedNode.FullPath!);
+        SelectedNode = null;
         await LoadFilesAsync();
-        SelectedFile = null;
         ClearBusy(result.Message);
     }
 
-    /// <summary>
-    /// Open the selected file with the system default editor.
-    /// </summary>
+    // =========================================================================
+    //  Open file
+    // =========================================================================
+
     [RelayCommand]
     private async Task OpenFileAsync()
     {
-        if (SelectedFile == null) return;
+        if (SelectedNode == null || SelectedNode.IsDirectory) return;
 
         var config = _gitHelper.ReadGitConfig();
         if (string.IsNullOrWhiteSpace(config.RepositoryDirectory)) return;
 
-        var fullPath = System.IO.Path.Combine(config.RepositoryDirectory, SelectedFile.FileName);
+        var fullPath = System.IO.Path.Combine(config.RepositoryDirectory, SelectedNode.FullPath!);
         await _fileOpener.OpenFileAsync(fullPath);
-        StatusMessage = $"已打开: {SelectedFile.FileName}";
-    }
-
-    /// <summary>
-    /// Open file with built-in editor (placeholder for future).
-    /// </summary>
-    [RelayCommand]
-    private async Task OpenWithEditorAsync()
-    {
-        if (SelectedFile == null) return;
-
-        var config = _gitHelper.ReadGitConfig();
-        if (string.IsNullOrWhiteSpace(config.RepositoryDirectory)) return;
-
-        var fullPath = System.IO.Path.Combine(config.RepositoryDirectory, SelectedFile.FileName);
-        await _fileOpener.OpenWithBuiltInEditorAsync(fullPath);
+        StatusMessage = $"已打开: {SelectedNode.Name}";
     }
 }

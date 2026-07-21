@@ -2,7 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:KBManager.GUI.ViewModels"
              x:Class="KBManager.GUI.Views.RepoOpsView"
-             x:DataType="vm:RepoOpsViewModel">
+             x:DataType="vm:RepoOpsViewModel"
+             x:CompileBindings="False">
     <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="24,20">
 
         <!-- Header -->
@@ -18,9 +19,9 @@
 
         <!-- Action Buttons -->
         <WrapPanel Grid.Row="1" Margin="0,0,0,12">
-            <Button Classes="primary" Content="📥 Clone" Command="{Binding CloneRepositoryCommand}" Margin="0,0,8,8" />
-            <Button Classes="primary" Content="📌 Main Add" Command="{Binding MainAddCommand}" Margin="0,0,8,8" />
-            <Button Classes="primary" Content="📌 Sub Add" Command="{Binding SubmoduleAddCommand}" Margin="0,0,8,8" />
+            <Button Classes="primary" Content="📥 Clone" Command="{Binding CloneRepositoryAsyncCommand}" Margin="0,0,8,8" />
+            <Button Classes="primary" Content="📌 Main Add" Command="{Binding MainAddAsyncCommand}" Margin="0,0,8,8" />
+            <Button Classes="primary" Content="📌 Sub Add" Command="{Binding SubmoduleAddAsyncCommand}" Margin="0,0,8,8" />
             <Button Classes="secondary" Content="📋 查看配置" Command="{Binding ShowConfigCommand}" Margin="0,0,8,8" />
         </WrapPanel>
 
@@ -48,12 +49,12 @@
                 <Button Grid.Row="2" Grid.Column="0"
                         Classes="primary"
                         Content="💾 Main Commit"
-                        Command="{Binding MainCommitCommand}"
+                        Command="{Binding MainCommitAsyncCommand}"
                         Margin="0,0,8,8" />
                 <Button Grid.Row="2" Grid.Column="1"
                         Classes="secondary"
                         Content="💾 Sub Commit"
-                        Command="{Binding SubmoduleCommitCommand}"
+                        Command="{Binding SubmoduleCommitAsyncCommand}"
                         Margin="0,0,8,8" />
                 <Button Grid.Row="2" Grid.Column="2"
                         Classes="danger"

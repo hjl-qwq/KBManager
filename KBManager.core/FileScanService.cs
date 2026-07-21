@@ -17,6 +17,11 @@ namespace KBManager.core
             ".git", ".kbdatabase"
         };
 
+        private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdwn"
+        };
+
         public ServiceResult<List<string>> ScanRepositoryFiles(string repositoryDirectory)
         {
             if (string.IsNullOrWhiteSpace(repositoryDirectory))
@@ -32,6 +37,7 @@ namespace KBManager.core
                 {
                     if (IsExcluded(fullPath, repositoryDirectory)) continue;
                     if (IsHidden(fullPath)) continue;
+                    if (!IsAllowedExtension(fullPath)) continue;
 
                     var relative = GetRelativePath(repositoryDirectory, fullPath);
                     if (relative.Length > 500) continue;
@@ -115,6 +121,12 @@ namespace KBManager.core
             {
                 return true;
             }
+        }
+
+        private static bool IsAllowedExtension(string filePath)
+        {
+            var ext = Path.GetExtension(filePath);
+            return AllowedExtensions.Contains(ext);
         }
     }
 }
