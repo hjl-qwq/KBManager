@@ -275,23 +275,27 @@ namespace KBManager.CLI
                 ConsoleUI.WriteHeader("Repository Operations");
                 var menu = new InteractiveMenu("Git Operations", new List<MenuItem>
                 {
-                    new("clone",  "📥  Clone Repository",  "Clone remote repo to local"),
-                    new("add",    "📌  Git Add",            "Stage all changes"),
-                    new("commit", "💾  Git Commit",         "Commit staged changes"),
-                    new("push",   "🚀  Git Push",           "Push to remote (SSH)"),
-                    new("status", "📋  Show Config",        "View current Git config"),
+                    new("clone",     "📥  Clone Repository",           "Clone remote repo + submodules"),
+                    new("sub_add",   "📌  Submodule Add",              "Stage changes in all submodules"),
+                    new("sub_commit","💾  Submodule Commit",           "Commit staged changes in submodules"),
+                    new("add",       "📌  Main Repo Add",              "Stage changes in main repository"),
+                    new("commit",    "💾  Main Repo Commit",           "Commit staged changes in main repo"),
+                    new("push",      "🚀  Push All",                   "Push submodules then main repo (SSH)"),
+                    new("status",    "📋  Show Config",                "View current Git config"),
                     MenuItem.Back,
                 });
 
                 var choice = menu.Show();
                 switch (choice)
                 {
-                    case "clone":  RunClone();        break;
-                    case "add":    RunAdd();          break;
-                    case "commit": RunCommit();       break;
-                    case "push":   RunPush();         break;
-                    case "status": ShowCurrentConfig(_gitHelper.ReadGitConfig()); ConsoleUI.PressAnyKey(); break;
-                    case "__back__": return Task.CompletedTask;
+                    case "clone":       RunClone();        break;
+                    case "sub_add":     RunSubmoduleAdd(); break;
+                    case "sub_commit":  RunSubmoduleCommit(); break;
+                    case "add":         RunAdd();          break;
+                    case "commit":      RunCommit();       break;
+                    case "push":        RunPush();         break;
+                    case "status":      ShowCurrentConfig(_gitHelper.ReadGitConfig()); ConsoleUI.PressAnyKey(); break;
+                    case "__back__":    return Task.CompletedTask;
                 }
             }
         }
@@ -314,11 +318,40 @@ namespace KBManager.CLI
 
         private void RunAdd()
         {
-            ConsoleUI.WriteHeader("Git Add");
+            ConsoleUI.WriteHeader("Main Repo Add");
             var config = _gitHelper.ReadGitConfig();
             bool ok = _gitHelper.ExecuteGitAdd(config);
-            if (ok) ConsoleUI.WriteSuccess("  ✓ All files staged.");
+            if (ok) ConsoleUI.WriteSuccess("  ✓ Main repo files staged.");
             else ConsoleUI.WriteError("  ✗ Add failed.");
+            ConsoleUI.PressAnyKey();
+        }
+
+        private void RunSubmoduleAdd()
+        {
+            ConsoleUI.WriteHeader("Submodule Add");
+            var config = _gitHelper.ReadGitConfig();
+            bool ok = _gitHelper.ExecuteSubmoduleAdd(config);
+            if (ok) ConsoleUI.WriteSuccess("  ✓ Submodule changes staged.");
+            else ConsoleUI.WriteError("  ✗ Submodule add failed.");
+            ConsoleUI.PressAnyKey();
+        }
+
+        private void RunSubmoduleCommit()
+        {
+            ConsoleUI.WriteHeader("Submodule Commit");
+            var config = _gitHelper.ReadGitConfig();
+            var msg = ConsoleUI.ReadLine("Commit message");
+            if (string.IsNullOrWhiteSpace(msg))
+            {
+                ConsoleUI.WriteError("  Commit message cannot be empty.");
+                ConsoleUI.PressAnyKey();
+                return;
+            }
+
+            var commitModel = new GitCommitModel { CommitMessage = msg };
+            bool ok = _gitHelper.ExecuteSubmoduleCommit(config, commitModel);
+            if (ok) ConsoleUI.WriteSuccess("  ✓ Submodules committed.");
+            else ConsoleUI.WriteError("  ✗ Submodule commit failed.");
             ConsoleUI.PressAnyKey();
         }
 

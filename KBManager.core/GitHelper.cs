@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
 using System.Linq;
@@ -104,8 +105,6 @@ namespace KBManager.core
                 return false;
             }
 
-            string parentDir = Path.GetDirectoryName(config.RepositoryDirectory);
-
             string tempDirectory = config.RepositoryDirectory + ".tmp_" + Guid.NewGuid().ToString("N").Substring(0, 8);
 
             if (string.IsNullOrEmpty(config.RemoteAddressSsh))
@@ -115,7 +114,7 @@ namespace KBManager.core
             }
             try
             {
-                Repository.Clone(config.RemoteAddressSsh, tempDirectory);
+                CloneAndInitSubmodules(config.RemoteAddressSsh, tempDirectory);
                 Console.WriteLine($"Repository cloned successfully from {config.RemoteAddressSsh} to: {tempDirectory}");
                 CopyDirectoryCrossPlatform(
                     sourceDir: tempDirectory,
@@ -132,18 +131,14 @@ namespace KBManager.core
             }
             finally
             {
-                if (Directory.Exists(tempDirectory))
-                {
-                    Directory.EnumerateFiles(tempDirectory, "*", SearchOption.AllDirectories).ToList().ForEach(file => File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly));
-                    Directory.Delete(tempDirectory, true);
-                }
+                CleanupTempDirectory(tempDirectory);
             }
 
 CloneViaHttps:
 
             try
             {
-                Repository.Clone(config.RemoteAddressHttps, tempDirectory);
+                CloneAndInitSubmodules(config.RemoteAddressHttps, tempDirectory);
                 Console.WriteLine($"Repository cloned successfully from {config.RemoteAddressHttps} to: {tempDirectory}");
                 CopyDirectoryCrossPlatform(
                     sourceDir: tempDirectory,
@@ -161,14 +156,98 @@ CloneViaHttps:
             }
             finally
             {
-                if (Directory.Exists(tempDirectory))
-                {
-                    Directory.EnumerateFiles(tempDirectory, "*", SearchOption.AllDirectories).ToList().ForEach(file => File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly));
-                    Directory.Delete(tempDirectory, true);
-                }
+                CleanupTempDirectory(tempDirectory);
             }
 
         }
+
+        /// <summary>
+        /// Clone a repository and initialize/update all submodules.
+        /// Uses the same SSH key detection as ExecuteGitPush.
+        /// </summary>
+        private void CloneAndInitSubmodules(string remoteUrl, string localPath)
+        {
+            string sshKeyPath = GetSshKeyPath();
+            bool hasSshKey = !string.IsNullOrEmpty(sshKeyPath) && File.Exists(sshKeyPath);
+
+            var cloneOptions = new CloneOptions
+            {
+                RecurseSubmodules = false, // we handle submodules manually after clone
+            };
+
+            if (hasSshKey)
+            {
+                cloneOptions.FetchOptions.CredentialsProvider = (url, usernameFromUrl, types) =>
+                    new UsernamePasswordCredentials
+                    {
+                        Username = "git",
+                        Password = File.ReadAllText(sshKeyPath)
+                    };
+            }
+
+            Repository.Clone(remoteUrl, localPath, cloneOptions);
+
+            // Initialize and update submodules
+            using (var repo = new Repository(localPath))
+            {
+                foreach (var submodule in repo.Submodules)
+                {
+                    Console.WriteLine($"Initializing submodule: {submodule.Name} ({submodule.Url})");
+                    try
+                    {
+                        var updateOptions = new SubmoduleUpdateOptions
+                        {
+                            Init = true,
+                        };
+
+                        if (hasSshKey)
+                        {
+                            updateOptions.FetchOptions.CredentialsProvider = (url, usernameFromUrl, types) =>
+                                new UsernamePasswordCredentials
+                                {
+                                    Username = "git",
+                                    Password = File.ReadAllText(sshKeyPath)
+                                };
+                        }
+
+                        repo.Submodules.Update(submodule.Name, updateOptions);
+                        Console.WriteLine($"  Submodule '{submodule.Name}' initialized successfully.");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"  Warning: failed to initialize submodule '{submodule.Name}': {ex.Message}");
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Recursively clear read-only attributes and delete a temp directory.
+        /// </summary>
+        private static void CleanupTempDirectory(string tempDirectory)
+        {
+            if (!Directory.Exists(tempDirectory)) return;
+
+            try
+            {
+                // Remove read-only attributes from .git contents recursively
+                var dirInfo = new DirectoryInfo(tempDirectory);
+                foreach (var fsInfo in dirInfo.EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+                {
+                    if ((fsInfo.Attributes & FileAttributes.ReadOnly) != 0)
+                        fsInfo.Attributes &= ~FileAttributes.ReadOnly;
+                }
+                Directory.Delete(tempDirectory, true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: failed to clean up temp directory: {ex.Message}");
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Main-repo-only Add / Commit  (submodules handled separately)
+        // ═══════════════════════════════════════════════════════════════
 
         public bool ExecuteGitAdd(GitConfigModel config)
         {
@@ -182,15 +261,43 @@ CloneViaHttps:
             {
                 using (var repo = new Repository(config.RepositoryDirectory))
                 {
-                    Commands.Stage(repo, "*");
-                    Console.WriteLine("All files staged successfully (git add .)");
+                    int staged = 0;
+                    var status = repo.RetrieveStatus();
+                    var submodulePathSet = new HashSet<string>(
+                        repo.Submodules.Select(s => s.Path.Replace('\\', '/').TrimEnd('/')),
+                        StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var entry in status)
+                    {
+                        if (entry.State == FileStatus.Unaltered ||
+                            entry.State == FileStatus.Ignored ||
+                            entry.State == FileStatus.Nonexistent)
+                            continue;
+
+                        // Skip files inside submodule dirs, but stage the
+                        // submodule pointer itself (e.g. "attachment").
+                        string normalizedPath = entry.FilePath.Replace('\\', '/').TrimEnd('/');
+                        if (submodulePathSet.Any(s => normalizedPath.StartsWith(s + "/")))
+                            continue;
+
+                        try
+                        {
+                            Commands.Stage(repo, entry.FilePath);
+                            staged++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"  Skipped '{entry.FilePath}': {ex.Message}");
+                        }
+                    }
+
+                    Console.WriteLine($"Staged {staged} file(s) in main repository");
                     return true;
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Failed to stage files: {ex.Message}");
-                Console.WriteLine($"Full error details:\n{ex.ToString()}");
                 return false;
             }
         }
@@ -204,24 +311,22 @@ CloneViaHttps:
                 return false;
             }
 
+            string finalUserName = !string.IsNullOrEmpty(gitConfig.UserName) ? gitConfig.UserName : "Temp CLI User";
+            string finalUserEmail = !string.IsNullOrEmpty(gitConfig.UserEmail) ? gitConfig.UserEmail : "temp-cli-user@example.com";
+            var author = new Signature(finalUserName, finalUserEmail, DateTimeOffset.Now);
+
             try
             {
                 using (var repo = new Repository(gitConfig.RepositoryDirectory))
                 {
-                    var status = repo.RetrieveStatus();
-                    if (!status.IsDirty)
+                    if (!repo.RetrieveStatus().IsDirty)
                     {
                         Console.WriteLine("No changes to commit (working directory clean)");
                         return true;
                     }
 
-                    string finalUserName = !string.IsNullOrEmpty(gitConfig.UserName) ? gitConfig.UserName : "Temp CLI User";
-                    string finalUserEmail = !string.IsNullOrEmpty(gitConfig.UserEmail) ? gitConfig.UserEmail : "temp-cli-user@example.com";
-
-                    var author = new Signature(finalUserName, finalUserEmail, DateTimeOffset.Now);
                     var commit = repo.Commit(gitCommit.CommitMessage, author, author);
-
-                    Console.WriteLine($"Commit successful! Commit ID: {commit.Sha.Substring(0, 7)}");
+                    Console.WriteLine($"Commit successful! Commit ID: {commit.Sha[..7]}");
                     Console.WriteLine($"Commit message: {gitCommit.CommitMessage}");
                     Console.WriteLine($"User info: {finalUserName} <{finalUserEmail}>");
                     return true;
@@ -230,13 +335,141 @@ CloneViaHttps:
             catch (Exception ex)
             {
                 Console.WriteLine($"Failed to commit changes: {ex.Message}");
-                Console.WriteLine($"Full error details:\n{ex.ToString()}");
                 return false;
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        //  Submodule-only Add / Commit
+        // ═══════════════════════════════════════════════════════════════
+
+        /// <summary>Stage changes inside ALL submodules.</summary>
+        public bool ExecuteSubmoduleAdd(GitConfigModel config)
+        {
+            if (string.IsNullOrEmpty(config.RepositoryDirectory))
+            {
+                Console.WriteLine("Error: RepositoryDirectory cannot be empty");
+                return false;
+            }
+
+            try
+            {
+                using (var repo = new Repository(config.RepositoryDirectory))
+                {
+                    int total = 0;
+                    foreach (var submodule in repo.Submodules)
+                    {
+                        string subPath = Path.GetFullPath(Path.Combine(config.RepositoryDirectory, submodule.Path));
+                        if (!Repository.IsValid(subPath)) continue;
+                        total += StageChangesInRepo(subPath, submodule.Name);
+                    }
+
+                    Console.WriteLine($"Submodule add complete — {total} file(s) staged across all submodules");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Submodule add failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>Commit staged changes inside ALL submodules.</summary>
+        public bool ExecuteSubmoduleCommit(GitConfigModel gitConfig, GitCommitModel gitCommit)
+        {
+            if (!gitConfig.ValidateCoreConfig()) return false;
+            if (string.IsNullOrEmpty(gitCommit.CommitMessage))
+            {
+                Console.WriteLine("Error: CommitMessage cannot be empty");
+                return false;
+            }
+
+            string finalUserName = !string.IsNullOrEmpty(gitConfig.UserName) ? gitConfig.UserName : "Temp CLI User";
+            string finalUserEmail = !string.IsNullOrEmpty(gitConfig.UserEmail) ? gitConfig.UserEmail : "temp-cli-user@example.com";
+            var author = new Signature(finalUserName, finalUserEmail, DateTimeOffset.Now);
+
+            try
+            {
+                using (var repo = new Repository(gitConfig.RepositoryDirectory))
+                {
+                    int committed = 0;
+                    foreach (var submodule in repo.Submodules)
+                    {
+                        string subPath = Path.GetFullPath(Path.Combine(gitConfig.RepositoryDirectory, submodule.Path));
+                        if (!Repository.IsValid(subPath)) continue;
+
+                        if (CommitIfDirty(subPath, submodule.Name, gitCommit.CommitMessage, author))
+                            committed++;
+                    }
+
+                    Console.WriteLine($"Submodule commit complete — {committed} submodule(s) committed");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Submodule commit failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>Commit inside a submodule if it has staged changes. Returns true if committed.</summary>
+        private static bool CommitIfDirty(string repoPath, string label, string message, Signature author)
+        {
+            try
+            {
+                using (var repo = new Repository(repoPath))
+                {
+                    if (!repo.RetrieveStatus().IsDirty) return false;
+
+                    var subMsg = $"{message} [submodule: {label}]";
+                    var commit = repo.Commit(subMsg, author, author);
+                    Console.WriteLine($"  Submodule '{label}': committed {commit.Sha[..7]}");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  Submodule '{label}': commit skipped — {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>Stage all changes inside a repository (used for submodules).</summary>
+        private static int StageChangesInRepo(string repoPath, string label)
+        {
+            try
+            {
+                using (var repo = new Repository(repoPath))
+                {
+                    var status = repo.RetrieveStatus();
+                    int count = 0;
+                    foreach (var entry in status)
+                    {
+                        if (entry.State == FileStatus.Unaltered ||
+                            entry.State == FileStatus.Ignored ||
+                            entry.State == FileStatus.Nonexistent)
+                            continue;
+
+                        try { Commands.Stage(repo, entry.FilePath); count++; }
+                        catch { /* skip */ }
+                    }
+                    if (count > 0)
+                        Console.WriteLine($"  Submodule '{label}': staged {count} file(s)");
+                    return count;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  Submodule '{label}': {ex.Message}");
+                return 0;
+            }
+        }
+
         /// <summary>
-        /// SSH Push with ED25519 key support (your key type)
+        /// SSH Push with ED25519 key support.
+        /// Pushes submodules first, then the main repository.
         /// </summary>
         public bool ExecuteGitPush(GitConfigModel config)
         {
@@ -252,8 +485,31 @@ CloneViaHttps:
                 return false;
             }
 
+            // Pre-fetch SSH key so we only prompt for passphrase once
+            string sshKeyPath = GetSshKeyPath();
+            if (string.IsNullOrEmpty(sshKeyPath) || !File.Exists(sshKeyPath))
+            {
+                Console.WriteLine($"Error: SSH key file not found at {sshKeyPath}");
+                return false;
+            }
+
+            string passphrase = ReadPassphrase();
+
             try
             {
+                // ── Step 1: Push each submodule first ──
+                using (var repo = new Repository(config.RepositoryDirectory))
+                {
+                    foreach (var submodule in repo.Submodules)
+                    {
+                        string subPath = Path.GetFullPath(Path.Combine(config.RepositoryDirectory, submodule.Path));
+                        if (!Repository.IsValid(subPath)) continue;
+
+                        PushSubmodule(subPath, submodule.Name, sshKeyPath, passphrase);
+                    }
+                }
+
+                // ── Step 2: Push main repo (original logic, unchanged) ──
                 using (var repo = new Repository(config.RepositoryDirectory))
                 {
                     // Reconfigure remote origin for SSH
@@ -264,47 +520,16 @@ CloneViaHttps:
                     var remote = repo.Network.Remotes.Add("origin", config.RemoteAddressSsh);
                     Console.WriteLine($"Configured remote origin (SSH): {config.RemoteAddressSsh}");
 
-                    // Get your ED25519 SSH key path
-                    string sshKeyPath = GetSshKeyPath();
-                    if (string.IsNullOrEmpty(sshKeyPath) || !File.Exists(sshKeyPath))
-                    {
-                        Console.WriteLine($"Error: SSH key file not found at {sshKeyPath}");
-                        return false;
-                    }
-
                     // SSH push configuration (ED25519 compatible)
                     var pushOptions = new PushOptions
                     {
                         CredentialsProvider = (url, usernameFromUrl, types) =>
-                        {
-                            // Get passphrase for your ED25519 key (if set)
-                            string passphrase = string.Empty;
-                            Console.Write("Enter ED25519 SSH key passphrase (leave empty if none): ");
-
-                            ConsoleKeyInfo key;
-                            do
+                            new UsernamePasswordCredentials
                             {
-                                key = Console.ReadKey(true);
-                                if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
-                                {
-                                    passphrase += key.KeyChar;
-                                }
-                                else if (key.Key == ConsoleKey.Backspace && passphrase.Length > 0)
-                                {
-                                    passphrase = passphrase.Substring(0, passphrase.Length - 1);
-                                }
-                            } while (key.Key != ConsoleKey.Enter);
-
-                            Console.WriteLine();
-
-                            // ED25519 key authentication (compatible with all LibGit2Sharp versions)
-                            return new UsernamePasswordCredentials
-                            {
-                                Username = "git", // Fixed SSH username for Gitee
+                                Username = "git",
                                 Password = string.IsNullOrEmpty(passphrase) ?
                                     File.ReadAllText(sshKeyPath) : passphrase
-                            };
-                        }
+                            }
                     };
 
                     var branch = repo.Head;
@@ -326,12 +551,74 @@ CloneViaHttps:
             {
                 Console.WriteLine($"Failed to push changes via SSH: {ex.Message}");
                 Console.WriteLine("\nTroubleshooting steps for ED25519 key:");
-                Console.WriteLine("1. Verify ED25519 public key is added to Gitee: https://gitee.com/profile/sshkeys");
+                Console.WriteLine("1. Verify ED25519 public key is added to remote: https://gitee.com/profile/sshkeys");
                 Console.WriteLine("2. Test SSH connection: ssh -T git@gitee.com (should return 'Hi username!')");
                 Console.WriteLine("3. Check ED25519 key permissions (chmod 600 ~/.ssh/id_ed25519 on Linux/Mac)");
                 Console.WriteLine($"Full error details:\n{ex.ToString()}");
                 return false;
             }
+        }
+
+        /// <summary>Push a single submodule using its own remote.</summary>
+        private static void PushSubmodule(string subPath, string label, string sshKeyPath, string passphrase)
+        {
+            try
+            {
+                using (var subRepo = new Repository(subPath))
+                {
+                    var subBranch = subRepo.Head;
+                    if (subBranch == null) return;
+
+                    var subRemote = subRepo.Network.Remotes["origin"];
+                    if (subRemote == null)
+                    {
+                        Console.WriteLine($"  Submodule '{label}': no origin remote, skipping push");
+                        return;
+                    }
+
+                    var pushOpts = new PushOptions
+                    {
+                        CredentialsProvider = (url, usernameFromUrl, types) =>
+                            new UsernamePasswordCredentials
+                            {
+                                Username = "git",
+                                Password = string.IsNullOrEmpty(passphrase) ?
+                                    File.ReadAllText(sshKeyPath) : passphrase
+                            }
+                    };
+
+                    subRepo.Network.Push(subRemote, $"refs/heads/{subBranch.FriendlyName}", pushOpts);
+                    Console.WriteLine($"  Submodule '{label}': pushed {subBranch.FriendlyName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  Submodule '{label}': push skipped — {ex.Message}");
+            }
+        }
+
+        /// <summary>Read SSH passphrase once, shared across all push operations.</summary>
+        private static string ReadPassphrase()
+        {
+            Console.Write("Enter ED25519 SSH key passphrase (leave empty if none): ");
+            string passphrase = string.Empty;
+
+            ConsoleKeyInfo key;
+            do
+            {
+                key = Console.ReadKey(true);
+                if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
+                {
+                    passphrase += key.KeyChar;
+                }
+                else if (key.Key == ConsoleKey.Backspace && passphrase.Length > 0)
+                {
+                    passphrase = passphrase[..^1];
+                }
+            } while (key.Key != ConsoleKey.Enter);
+
+            Console.WriteLine();
+            return passphrase;
         }
 
         public bool SaveGitConfig(GitConfigModel gitConfig)
