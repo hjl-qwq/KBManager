@@ -6,20 +6,20 @@
         Width="420" Height="200"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
-        Background="White"
-        Foreground="#333"
+        Background="{DynamicResource BackgroundDefaultColor}"
+        Foreground="{DynamicResource TextPrimaryColor}"
         Title="Confirm">
     <Window.Styles>
         <Style Selector="Button.primary">
-            <Setter Property="Background" Value="#0078D4" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}" />
         </Style>
         <Style Selector="Button.secondary">
-            <Setter Property="Background" Value="#E0E0E0" />
-            <Setter Property="Foreground" Value="#333" />
+            <Setter Property="Background" Value="{DynamicResource SecondaryColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryForegroundColor}" />
         </Style>
         <Style Selector="TextBlock">
-            <Setter Property="Foreground" Value="#333" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}" />
         </Style>
     </Window.Styles>
     <Grid RowDefinitions="*,Auto" Margin="24,20">
@@ -27,7 +27,7 @@
                    Text="{Binding Message}"
                    TextWrapping="Wrap"
                    FontSize="14"
-                   Foreground="#333"
+                   Foreground="{DynamicResource TextPrimaryColor}"
                    VerticalAlignment="Center" />
         <StackPanel Grid.Row="1"
                     Orientation="Horizontal"

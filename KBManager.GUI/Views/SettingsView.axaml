@@ -10,34 +10,34 @@
             <TextBlock Text="⚙ 设置"
                        FontSize="20"
                        FontWeight="SemiBold"
-                       Foreground="#333" />
+                       Foreground="{DynamicResource TextPrimaryColor}" />
             <TextBlock Text="配置用户信息、仓库地址和本地目录"
                        FontSize="13"
-                       Foreground="#888" />
+                       Foreground="{DynamicResource TextMutedColor}" />
         </StackPanel>
 
         <!-- Settings Form -->
         <ScrollViewer Grid.Row="1">
             <StackPanel Spacing="16" MaxWidth="600">
                 <!-- Section: Git User -->
-                <Border Background="#F8F8F8"
+                <Border Background="{DynamicResource BackgroundSectionColor}"
                         CornerRadius="6"
                         Padding="20">
                     <StackPanel Spacing="12">
                         <TextBlock Text="Git 用户信息"
                                    FontSize="15"
                                    FontWeight="SemiBold"
-                                   Foreground="#333" />
+                                   Foreground="{DynamicResource TextPrimaryColor}" />
                         <TextBlock Text="用于 Git 提交的用户名和邮箱"
                                    FontSize="12"
-                                   Foreground="#888" />
+                                   Foreground="{DynamicResource TextMutedColor}" />
 
                         <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto">
                             <TextBlock Grid.Row="0" Grid.Column="0"
                                        Text="用户名"
                                        VerticalAlignment="Center"
                                        FontSize="13"
-                                       Foreground="#555" />
+                                       Foreground="{DynamicResource TextSecondaryColor}" />
                             <TextBox Grid.Row="0" Grid.Column="1"
                                      Classes="input"
                                      Text="{Binding UserName}"
@@ -48,7 +48,7 @@
                                        Text="邮箱"
                                        VerticalAlignment="Center"
                                        FontSize="13"
-                                       Foreground="#555" />
+                                       Foreground="{DynamicResource TextSecondaryColor}" />
                             <TextBox Grid.Row="1" Grid.Column="1"
                                      Classes="input"
                                      Text="{Binding UserEmail}"
@@ -58,24 +58,24 @@
                 </Border>
 
                 <!-- Section: Remote -->
-                <Border Background="#F8F8F8"
+                <Border Background="{DynamicResource BackgroundSectionColor}"
                         CornerRadius="6"
                         Padding="20">
                     <StackPanel Spacing="12">
                         <TextBlock Text="远程仓库"
                                    FontSize="15"
                                    FontWeight="SemiBold"
-                                   Foreground="#333" />
+                                   Foreground="{DynamicResource TextPrimaryColor}" />
                         <TextBlock Text="远程 Git 仓库地址（支持 HTTPS 和 SSH）"
                                    FontSize="12"
-                                   Foreground="#888" />
+                                   Foreground="{DynamicResource TextMutedColor}" />
 
                         <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto">
                             <TextBlock Grid.Row="0" Grid.Column="0"
                                        Text="HTTPS 地址"
                                        VerticalAlignment="Center"
                                        FontSize="13"
-                                       Foreground="#555" />
+                                       Foreground="{DynamicResource TextSecondaryColor}" />
                             <TextBox Grid.Row="0" Grid.Column="1"
                                      Classes="input"
                                      Text="{Binding RemoteHttps}"
@@ -86,7 +86,7 @@
                                        Text="SSH 地址"
                                        VerticalAlignment="Center"
                                        FontSize="13"
-                                       Foreground="#555" />
+                                       Foreground="{DynamicResource TextSecondaryColor}" />
                             <TextBox Grid.Row="1" Grid.Column="1"
                                      Classes="input"
                                      Text="{Binding RemoteSsh}"
@@ -96,17 +96,17 @@
                 </Border>
 
                 <!-- Section: Local Directory -->
-                <Border Background="#F8F8F8"
+                <Border Background="{DynamicResource BackgroundSectionColor}"
                         CornerRadius="6"
                         Padding="20">
                     <StackPanel Spacing="12">
                         <TextBlock Text="本地仓库目录"
                                    FontSize="15"
                                    FontWeight="SemiBold"
-                                   Foreground="#333" />
+                                   Foreground="{DynamicResource TextPrimaryColor}" />
                         <TextBlock Text="知识库在本地文件系统中的位置"
                                    FontSize="12"
-                                   Foreground="#888" />
+                                   Foreground="{DynamicResource TextMutedColor}" />
 
                         <Grid ColumnDefinitions="*,Auto">
                             <TextBox Grid.Column="0"

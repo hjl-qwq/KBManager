@@ -10,10 +10,10 @@
             <TextBlock Text="🔍 搜索文件"
                        FontSize="20"
                        FontWeight="SemiBold"
-                       Foreground="#333" />
+                       Foreground="{DynamicResource TextPrimaryColor}" />
             <TextBlock Text="输入标签名称，查找带有该标签的所有文件"
                        FontSize="13"
-                       Foreground="#888" />
+                       Foreground="{DynamicResource TextMutedColor}" />
         </StackPanel>
 
         <!-- Search Bar -->
@@ -32,32 +32,33 @@
 
         <!-- Results Table -->
         <Border Grid.Row="2"
-                BorderBrush="#E0E0E0"
+                BorderBrush="{DynamicResource BorderDefaultColor}"
                 BorderThickness="1"
                 CornerRadius="4">
             <Grid RowDefinitions="Auto,*,Auto">
                 <!-- Table Header -->
                 <Grid Grid.Row="0"
                       ColumnDefinitions="*,120"
-                      Background="#F5F5F5"
+                      Background="{DynamicResource BackgroundHeaderRowColor}"
                       Height="36">
                     <TextBlock Grid.Column="0"
                                Text="  文件名"
                                FontWeight="SemiBold"
                                FontSize="12"
-                               Foreground="#666"
+                               Foreground="{DynamicResource TextStatusColor}"
                                VerticalAlignment="Center" />
                     <TextBlock Grid.Column="1"
                                Text="标签"
                                FontWeight="SemiBold"
                                FontSize="12"
-                               Foreground="#666"
+                               Foreground="{DynamicResource TextStatusColor}"
                                VerticalAlignment="Center" />
                 </Grid>
 
                 <!-- Results List -->
                 <ListBox Grid.Row="1"
                          ItemsSource="{Binding Results}"
+                         Background="{DynamicResource BackgroundDefaultColor}"
                          BorderThickness="0">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
@@ -67,13 +68,13 @@
                                 <TextBlock Grid.Column="0"
                                            Text="{Binding FileName}"
                                            FontSize="13"
-                                           Foreground="#333"
+                                           Foreground="{DynamicResource TextPrimaryColor}"
                                            VerticalAlignment="Center"
                                            Margin="8,0" />
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding TagsDisplay}"
                                            FontSize="12"
-                                           Foreground="#0078D4"
+                                           Foreground="{DynamicResource PrimaryColor}"
                                            VerticalAlignment="Center"
                                            TextTrimming="CharacterEllipsis" />
                             </Grid>
@@ -83,13 +84,13 @@
 
                 <!-- Summary -->
                 <Border Grid.Row="2"
-                        Background="#FAFAFA"
-                        BorderBrush="#E0E0E0"
+                        Background="{DynamicResource BackgroundFooterColor}"
+                        BorderBrush="{DynamicResource BorderDefaultColor}"
                         BorderThickness="0,1,0,0"
                         Padding="12,6">
                     <TextBlock Text="{Binding ResultSummary}"
                                FontSize="12"
-                               Foreground="#888" />
+                               Foreground="{DynamicResource TextMutedColor}" />
                 </Border>
             </Grid>
         </Border>
