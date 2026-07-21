@@ -18,18 +18,18 @@
     <Grid RowDefinitions="Auto,*,Auto">
         <!-- Title Bar -->
         <Border Grid.Row="0"
-                Background="#0078D4"
+                Background="{DynamicResource TitleBarBackgroundColor}"
                 Padding="16,10"
                 CornerRadius="0">
             <StackPanel Orientation="Horizontal" Spacing="16">
                 <TextBlock Text="📚 KBManager"
                            FontSize="18"
                            FontWeight="Bold"
-                           Foreground="White"
+                           Foreground="{DynamicResource TextOnPrimaryColor}"
                            VerticalAlignment="Center" />
                 <TextBlock Text="Knowledge Base Manager"
                            FontSize="13"
-                           Foreground="#B3D9FF"
+                           Foreground="{DynamicResource TextOnPrimaryLightColor}"
                            VerticalAlignment="Center" />
             </StackPanel>
         </Border>
@@ -38,15 +38,15 @@
         <Grid Grid.Row="1" ColumnDefinitions="220,*">
             <!-- Left Navigation -->
             <Border Grid.Column="0"
-                    Background="#F5F5F5"
-                    BorderBrush="#E0E0E0"
+                    Background="{DynamicResource BackgroundSidebarColor}"
+                    BorderBrush="{DynamicResource BorderDefaultColor}"
                     BorderThickness="0,0,1,0">
                 <StackPanel Margin="0,12,0,0" Spacing="2">
                     <!-- Navigation Header -->
                     <TextBlock Text="导航"
                                FontSize="12"
                                FontWeight="SemiBold"
-                               Foreground="#888"
+                               Foreground="{DynamicResource TextMutedColor}"
                                Margin="16,0,0,8" />
 
                     <!-- Nav Buttons -->
@@ -64,17 +64,17 @@
                             Command="{Binding NavigateToRepoOpsCommand}" />
 
                     <!-- Spacer -->
-                    <Separator Margin="8,16,8,8" Background="#E0E0E0" />
+                    <Separator Margin="8,16,8,8" Background="{DynamicResource BorderDefaultColor}" />
 
                     <!-- Repository Info -->
                     <StackPanel Margin="12,4">
                         <TextBlock Text="仓库信息"
                                    FontSize="11"
-                                   Foreground="#888"
+                                   Foreground="{DynamicResource TextMutedColor}"
                                    Margin="4,0,0,4" />
                         <TextBlock Text="{Binding RepositoryPath}"
                                    FontSize="11"
-                                   Foreground="#555"
+                                   Foreground="{DynamicResource TextSecondaryColor}"
                                    TextWrapping="Wrap"
                                    Margin="4,0" />
                     </StackPanel>
@@ -82,7 +82,7 @@
             </Border>
 
             <!-- Right Content Area -->
-            <Border Grid.Column="1" Background="White">
+            <Border Grid.Column="1" Background="{DynamicResource BackgroundDefaultColor}">
                 <ContentControl Content="{Binding CurrentPageViewModel}">
                     <ContentControl.DataTemplates>
                         <!-- Page Template Selector -->
@@ -105,19 +105,19 @@
 
         <!-- Status Bar -->
         <Border Grid.Row="2"
-                Background="#F0F0F0"
-                BorderBrush="#E0E0E0"
+                Background="{DynamicResource BackgroundStatusBarColor}"
+                BorderBrush="{DynamicResource BorderDefaultColor}"
                 BorderThickness="0,1,0,0"
                 Padding="16,6">
             <StackPanel Orientation="Horizontal" Spacing="24">
                 <TextBlock FontSize="11"
-                           Foreground="#666"
+                           Foreground="{DynamicResource TextStatusColor}"
                            Text="{Binding StatusMessage}" />
                 <TextBlock FontSize="11"
-                           Foreground="#888"
+                           Foreground="{DynamicResource TextMutedColor}"
                            Text="|" />
                 <TextBlock FontSize="11"
-                           Foreground="#888"
+                           Foreground="{DynamicResource TextMutedColor}"
                            Text="{Binding RepositoryPath, StringFormat='仓库: {0}'}" />
             </StackPanel>
         </Border>

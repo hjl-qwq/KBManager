@@ -11,10 +11,10 @@
             <TextBlock Text="📦 Git 操作"
                        FontSize="20"
                        FontWeight="SemiBold"
-                       Foreground="#333" />
+                       Foreground="{DynamicResource TextPrimaryColor}" />
             <TextBlock Text="管理 Git 仓库：克隆、暂存、提交、推送"
                        FontSize="13"
-                       Foreground="#888" />
+                       Foreground="{DynamicResource TextMutedColor}" />
         </StackPanel>
 
         <!-- Action Buttons -->
@@ -27,7 +27,7 @@
 
         <!-- Commit Section -->
         <Border Grid.Row="2"
-                BorderBrush="#E0E0E0"
+                BorderBrush="{DynamicResource BorderDefaultColor}"
                 BorderThickness="1"
                 CornerRadius="4"
                 Padding="16"
@@ -37,7 +37,7 @@
                            Text="提交操作"
                            FontSize="15"
                            FontWeight="SemiBold"
-                           Foreground="#333"
+                           Foreground="{DynamicResource TextPrimaryColor}"
                            Margin="0,0,0,8" />
 
                 <TextBox Grid.Row="1" Grid.ColumnSpan="3"
@@ -64,7 +64,7 @@
 
                 <!-- Log Output -->
                 <Border Grid.Row="3" Grid.ColumnSpan="3"
-                        Background="#1E1E1E"
+                        Background="{DynamicResource BackgroundDarkColor}"
                         CornerRadius="4"
                         Padding="12"
                         Margin="0,8,0,0">
@@ -72,7 +72,7 @@
                         <TextBlock Text="{Binding LogOutput, FallbackValue='操作日志将在此显示...'}"
                                    FontFamily="Cascadia Code, Consolas, monospace"
                                    FontSize="12"
-                                   Foreground="#D4D4D4"
+                                   Foreground="{DynamicResource TextOnDarkColor}"
                                    TextWrapping="Wrap" />
                     </ScrollViewer>
                 </Border>
@@ -80,7 +80,7 @@
                 <TextBlock Grid.Row="4" Grid.ColumnSpan="3"
                            Text="💡 提示: Push 操作使用 SSH 密钥（自动检测 ~/.ssh/id_ed25519 或 id_rsa）"
                            FontSize="11"
-                           Foreground="#888"
+                           Foreground="{DynamicResource TextMutedColor}"
                            Margin="0,8,0,0" />
             </Grid>
         </Border>

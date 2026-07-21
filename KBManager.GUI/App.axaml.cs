@@ -20,7 +20,24 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        Services = ConfigureServices();
+        // 1) 加载主题 — 必须在任何 UI 创建之前
+        ThemeManager themeManager;
+        try
+        {
+            themeManager = new ThemeManager();
+            themeManager.LoadTheme();
+            themeManager.ApplyToApplication(this);
+        }
+        catch (Exception ex)
+        {
+            // 主题加载失败时使用默认值，确保应用仍能启动
+            System.Diagnostics.Debug.WriteLine($"Theme load failed: {ex.Message}");
+            themeManager = new ThemeManager(); // 使用默认主题
+            themeManager.ApplyToApplication(this);
+        }
+
+        // 2) DI 容器
+        Services = ConfigureServices(themeManager);
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -33,9 +50,13 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private static IServiceProvider ConfigureServices()
+    private static IServiceProvider ConfigureServices(ThemeManager themeManager)
     {
         var services = new ServiceCollection();
+
+        // Theme
+        services.AddSingleton(themeManager);
+        services.AddSingleton(themeManager.CurrentTheme);
 
         // Core services (UI-agnostic)
         services.AddSingleton<KBManager.core.GitHelper>();
