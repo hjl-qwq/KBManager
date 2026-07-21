@@ -9,4 +9,7 @@
   <Project Path="KBManager.core/KBManager.core.csproj" Id="00d6b409-206d-4db9-8e8e-c86b1dfae470">
     <Platform Solution="Release|x64" Project="x64" />
   </Project>
+  <Project Path="KBManager.GUI/KBManager.GUI.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
 </Solution>

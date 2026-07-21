@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>KBManager.GUI</RootNamespace>
+    <AssemblyName>KBManager.GUI</AssemblyName>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.1.5" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.1.5" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.1.5" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.1.5" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.1.5" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <!-- Debug-only diagnostics -->
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.1.5" />
+    <!-- LibGit2Sharp native binaries for both platforms -->
+    <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
+    <PackageReference Include="LibGit2Sharp.NativeBinaries" Version="2.0.323" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KBManager.core\KBManager.core.csproj" />
+  </ItemGroup>
+
+  <!-- Copy LibGit2Sharp native binaries -->
+  <Target Name="CopyLibGit2NativeBinaries" AfterTargets="Build" BeforeTargets="Publish">
+    <ItemGroup>
+      <_Git2NativeFilesWin Include="$(NuGetPackageRoot)libgit2sharp.nativebinaries\2.0.323\runtimes\win-x64\native\*.dll" />
+      <_Git2NativeFilesLinux Include="$(NuGetPackageRoot)libgit2sharp.nativebinaries\2.0.323\runtimes\linux-x64\native\*.so" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_Git2NativeFilesWin)"
+          DestinationFolder="$(OutputPath)"
+          Condition="'$(RuntimeIdentifier)' == 'win-x64'"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_Git2NativeFilesLinux)"
+          DestinationFolder="$(OutputPath)"
+          Condition="'$(RuntimeIdentifier)' == 'linux-x64' Or '$(RuntimeIdentifier)' == ''"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>
