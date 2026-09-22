@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# KBManager: 本地构建产物与工具链
+.dotnet/
+.nuget/
