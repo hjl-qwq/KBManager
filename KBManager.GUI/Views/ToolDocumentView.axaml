@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:KBManager.GUI.ViewModels"
+             xmlns:views="clr-namespace:KBManager.GUI.Views"
+             x:Class="KBManager.GUI.Views.ToolDocumentView"
+             x:DataType="vm:ToolDocumentViewModel">
+    <ContentControl Content="{Binding Page}">
+        <ContentControl.DataTemplates>
+            <DataTemplate DataType="vm:SettingsViewModel">
+                <views:SettingsView />
+            </DataTemplate>
+            <DataTemplate DataType="vm:RepoOpsViewModel">
+                <views:RepoOpsView />
+            </DataTemplate>
+            <DataTemplate DataType="vm:LogViewModel">
+                <views:LogView />
+            </DataTemplate>
+        </ContentControl.DataTemplates>
+    </ContentControl>
+</UserControl>

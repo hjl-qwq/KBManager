@@ -1,0 +1,90 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:KBManager.GUI.ViewModels"
+             xmlns:views="clr-namespace:KBManager.GUI.Views"
+             x:Class="KBManager.GUI.Views.EditorHostView"
+             x:DataType="vm:MainViewModel">
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- ═══ Document tab strip ═══ -->
+        <Border Grid.Row="0" Classes="tabstrip" IsVisible="{Binding HasDocuments}">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding Documents}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:DocumentViewModel">
+                            <Border BorderBrush="{DynamicResource TabBorderColor}"
+                                    BorderThickness="0,0,1,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <!-- Tab label: click to activate -->
+                                    <Button Classes="tab"
+                                            Classes.active="{Binding IsActive}"
+                                            Command="{Binding ActivateCommand}"
+                                            ToolTip.Tip="{Binding LocationLabel}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <!-- Unsaved marker -->
+                                            <TextBlock Text="●"
+                                                       FontSize="11"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TabDirtyIndicatorColor}"
+                                                       IsVisible="{Binding IsDirty}" />
+                                            <TextBlock Text="{Binding Title}"
+                                                       FontSize="12"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Close -->
+                                    <Button Classes="tabclose"
+                                            Content="✕"
+                                            Margin="0,0,6,0"
+                                            VerticalAlignment="Center"
+                                            Command="{Binding CloseCommand}"
+                                            ToolTip.Tip="关闭 (Ctrl+W)" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ═══ Document content ═══ -->
+        <ContentControl Grid.Row="1" Content="{Binding ActiveDocument}">
+            <ContentControl.DataTemplates>
+                <DataTemplate DataType="vm:FileDocumentViewModel">
+                    <views:FileEditorView />
+                </DataTemplate>
+                <DataTemplate DataType="vm:ToolDocumentViewModel">
+                    <views:ToolDocumentView />
+                </DataTemplate>
+            </ContentControl.DataTemplates>
+        </ContentControl>
+
+        <!-- ═══ Empty state ═══ -->
+        <Border Grid.Row="0" Grid.RowSpan="2"
+                Background="{DynamicResource EditorBackgroundColor}"
+                IsVisible="{Binding HasNoDocuments}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+                <TextBlock Text="未打开任何文件"
+                           FontSize="16"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource EmptyStateColor}" />
+                <TextBlock Text="在左侧「文件」中双击一篇笔记，或用「检索」按标签查找"
+                           FontSize="12"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource EmptyStateColor}" />
+                <TextBlock Text="Ctrl+S 保存 · Ctrl+W 关闭 · Ctrl+R 重新加载"
+                           FontSize="11"
+                           Margin="0,6,0,0"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource EmptyStateColor}" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

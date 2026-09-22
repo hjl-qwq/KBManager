@@ -2,127 +2,187 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:KBManager.GUI.ViewModels"
         xmlns:views="clr-namespace:KBManager.GUI.Views"
-        xmlns:conv="clr-namespace:KBManager.GUI.Converters"
         x:Class="KBManager.GUI.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Title="KBManager — Knowledge Base Manager"
-        Width="1100" Height="700"
-        MinWidth="800" MinHeight="500"
+        Title="KBManager — Knowledge Base Workspace"
+        Width="1280" Height="820"
+        MinWidth="900" MinHeight="560"
+        Background="{DynamicResource BackgroundDefaultColor}"
         WindowStartupLocation="CenterScreen">
 
-    <Window.Resources>
-        <conv:CollectionCountConverter x:Key="CountConverter" />
-        <conv:StringListJoinConverter x:Key="TagJoinConverter" />
-    </Window.Resources>
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveActiveDocumentCommand}" />
+        <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseDocumentCommand}" />
+        <KeyBinding Gesture="Ctrl+R" Command="{Binding ReloadActiveDocumentCommand}" />
+    </Window.KeyBindings>
 
     <Grid RowDefinitions="Auto,*,Auto">
-        <!-- Title Bar -->
+        <!-- ═══ Title bar ═══ -->
         <Border Grid.Row="0"
                 Background="{DynamicResource TitleBarBackgroundColor}"
-                Padding="16,10"
-                CornerRadius="0">
-            <StackPanel Orientation="Horizontal" Spacing="16">
-                <TextBlock Text="📚 KBManager"
-                           FontSize="18"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource TextOnPrimaryColor}"
-                           VerticalAlignment="Center" />
-                <TextBlock Text="Knowledge Base Manager"
-                           FontSize="13"
+                Padding="14,8">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="KBManager"
+                               FontSize="15"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextOnPrimaryColor}"
+                               VerticalAlignment="Center" />
+                    <TextBlock Text="Editor + Manager"
+                               FontSize="11"
+                               Foreground="{DynamicResource TextOnPrimaryLightColor}"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding RepositoryPath}"
+                           FontSize="11"
+                           Margin="16,0"
+                           TextTrimming="CharacterEllipsis"
                            Foreground="{DynamicResource TextOnPrimaryLightColor}"
                            VerticalAlignment="Center" />
-            </StackPanel>
+
+                <TextBlock Grid.Column="2"
+                           Text="{Binding StatusMessage}"
+                           FontSize="11"
+                           MaxWidth="420"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource TextOnPrimaryLightColor}"
+                           VerticalAlignment="Center" />
+            </Grid>
         </Border>
 
-        <!-- Main Content Area -->
-        <Grid Grid.Row="1" ColumnDefinitions="220,*">
-            <!-- Left Navigation -->
-            <Border Grid.Column="0"
-                    Background="{DynamicResource BackgroundSidebarColor}"
-                    BorderBrush="{DynamicResource BorderDefaultColor}"
-                    BorderThickness="0,0,1,0">
-                <StackPanel Margin="0,12,0,0" Spacing="2">
-                    <!-- Navigation Header -->
-                    <TextBlock Text="导航"
-                               FontSize="12"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextMutedColor}"
-                               Margin="16,0,0,8" />
+        <!-- ═══ Workspace: activity bar · sidebar · splitter · editor ═══ -->
+        <Grid Grid.Row="1" ColumnDefinitions="56,300,Auto,*">
+            <!-- Activity bar.
+                 Top group switches the sidebar panel; the bottom group is pinned
+                 like VS Code's settings/account corner and opens a tab in the
+                 editor area instead. A separator makes the two behaviours obvious. -->
+            <Border Grid.Column="0" Classes="activitybar">
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <!-- Top: sidebar panels -->
+                    <StackPanel Grid.Row="0">
+                        <Grid ColumnDefinitions="3,*">
+                            <Border Grid.Column="0"
+                                    Background="{DynamicResource AccentBarColor}"
+                                    IsVisible="{Binding IsExplorerActive}" />
+                            <Button Grid.Column="1"
+                                    Classes="activity"
+                                    Classes.active="{Binding IsExplorerActive}"
+                                    Command="{Binding ShowExplorerCommand}"
+                                    Content="文件"
+                                    ToolTip.Tip="资源管理器（在左侧栏显示已索引的文件）" />
+                        </Grid>
 
-                    <!-- Nav Buttons -->
-                    <Button Content="🔍  搜索文件"
-                            Classes="nav"
-                            Command="{Binding NavigateToSearchCommand}" />
-                    <Button Content="📁  文件管理"
-                            Classes="nav"
-                            Command="{Binding NavigateToFileListCommand}" />
-                    <Button Content="⚙  设置"
-                            Classes="nav"
-                            Command="{Binding NavigateToSettingsCommand}" />
-                    <Button Content="📦  Git 操作"
-                            Classes="nav"
-                            Command="{Binding NavigateToRepoOpsCommand}" />
-
-                    <!-- Spacer -->
-                    <Separator Margin="8,16,8,8" Background="{DynamicResource BorderDefaultColor}" />
-
-                    <!-- Repository Info -->
-                    <StackPanel Margin="12,4">
-                        <TextBlock Text="仓库信息"
-                                   FontSize="11"
-                                   Foreground="{DynamicResource TextMutedColor}"
-                                   Margin="4,0,0,4" />
-                        <TextBlock Text="{Binding RepositoryPath}"
-                                   FontSize="11"
-                                   Foreground="{DynamicResource TextSecondaryColor}"
-                                   TextWrapping="Wrap"
-                                   Margin="4,0" />
+                        <Grid ColumnDefinitions="3,*">
+                            <Border Grid.Column="0"
+                                    Background="{DynamicResource AccentBarColor}"
+                                    IsVisible="{Binding IsSearchActive}" />
+                            <Button Grid.Column="1"
+                                    Classes="activity"
+                                    Classes.active="{Binding IsSearchActive}"
+                                    Command="{Binding ShowSearchCommand}"
+                                    Content="检索"
+                                    ToolTip.Tip="按标签检索（在左侧栏显示）" />
+                        </Grid>
                     </StackPanel>
-                </StackPanel>
+
+                    <!-- Bottom: tools that open a tab -->
+                    <StackPanel Grid.Row="2">
+                        <Border Height="1"
+                                Margin="8,6"
+                                Background="{DynamicResource BorderDefaultColor}" />
+
+                        <Grid ColumnDefinitions="3,*">
+                            <Border Grid.Column="0"
+                                    Background="{DynamicResource AccentBarColor}"
+                                    IsVisible="{Binding IsSettingsActive}" />
+                            <Button Grid.Column="1"
+                                    Classes="activity"
+                                    Classes.active="{Binding IsSettingsActive}"
+                                    Command="{Binding OpenSettingsCommand}"
+                                    Content="设置"
+                                    ToolTip.Tip="设置（在编辑区以标签页打开）" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="3,*">
+                            <Border Grid.Column="0"
+                                    Background="{DynamicResource AccentBarColor}"
+                                    IsVisible="{Binding IsLogActive}" />
+                            <Button Grid.Column="1"
+                                    Classes="activity"
+                                    Classes.active="{Binding IsLogActive}"
+                                    Command="{Binding OpenLogCommand}"
+                                    Content="日志"
+                                    ToolTip.Tip="运行日志（在编辑区以标签页打开）" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="3,*">
+                            <Border Grid.Column="0"
+                                    Background="{DynamicResource AccentBarColor}"
+                                    IsVisible="{Binding IsGitActive}" />
+                            <Button Grid.Column="1"
+                                    Classes="activity"
+                                    Classes.active="{Binding IsGitActive}"
+                                    Command="{Binding OpenGitCommand}"
+                                    Content="Git"
+                                    ToolTip.Tip="Git 操作（在编辑区以标签页打开）" />
+                        </Grid>
+                    </StackPanel>
+                </Grid>
             </Border>
 
-            <!-- Right Content Area -->
-            <Border Grid.Column="1" Background="{DynamicResource BackgroundDefaultColor}">
-                <ContentControl Content="{Binding CurrentPageViewModel}">
+            <!-- Sidebar: explorer or search -->
+            <Border Grid.Column="1" Classes="sidebar">
+                <ContentControl Content="{Binding SidebarContent}">
                     <ContentControl.DataTemplates>
-                        <!-- Page Template Selector -->
+                        <DataTemplate DataType="vm:ExplorerViewModel">
+                            <views:ExplorerView />
+                        </DataTemplate>
                         <DataTemplate DataType="vm:SearchViewModel">
                             <views:SearchView />
-                        </DataTemplate>
-                        <DataTemplate DataType="vm:FileListViewModel">
-                            <views:FileListView />
-                        </DataTemplate>
-                        <DataTemplate DataType="vm:SettingsViewModel">
-                            <views:SettingsView />
-                        </DataTemplate>
-                        <DataTemplate DataType="vm:RepoOpsViewModel">
-                            <views:RepoOpsView />
                         </DataTemplate>
                     </ContentControl.DataTemplates>
                 </ContentControl>
             </Border>
+
+            <!-- Resizable divider -->
+            <GridSplitter Grid.Column="2"
+                          Width="4"
+                          ResizeDirection="Columns"
+                          ResizeBehavior="PreviousAndNext" />
+
+            <!-- Editor area -->
+            <Border Grid.Column="3" Classes="editorhost">
+                <views:EditorHostView />
+            </Border>
         </Grid>
 
-        <!-- Status Bar -->
-        <Border Grid.Row="2"
-                Background="{DynamicResource BackgroundStatusBarColor}"
-                BorderBrush="{DynamicResource BorderDefaultColor}"
-                BorderThickness="0,1,0,0"
-                Padding="16,6">
-            <StackPanel Orientation="Horizontal" Spacing="24">
-                <TextBlock FontSize="11"
+        <!-- ═══ Status bar ═══ -->
+        <Border Grid.Row="2" Classes="statusbar" Padding="12,5">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                <TextBlock Grid.Column="0"
+                           FontSize="11"
                            Foreground="{DynamicResource TextStatusColor}"
-                           Text="{Binding StatusMessage}" />
-                <TextBlock FontSize="11"
+                           Text="{Binding RepositoryPath, StringFormat='仓库: {0}'}"
+                           TextTrimming="CharacterEllipsis" />
+
+                <TextBlock Grid.Column="1"
+                           FontSize="11"
+                           Margin="16,0"
                            Foreground="{DynamicResource TextMutedColor}"
-                           Text="|" />
-                <TextBlock FontSize="11"
+                           Text="{Binding FileCount, StringFormat='文件 {0}'}" />
+
+                <TextBlock Grid.Column="2"
+                           FontSize="11"
                            Foreground="{DynamicResource TextMutedColor}"
-                           Text="{Binding RepositoryPath, StringFormat='仓库: {0}'}" />
-            </StackPanel>
+                           Text="{Binding TagCount, StringFormat='标签 {0}'}" />
+
+                <TextBlock Grid.Column="3"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextStatusColor}"
+                           Text="{Binding ActiveDocumentLocation}" />
+            </Grid>
         </Border>
     </Grid>
-
-    <!-- Styles now in App.axaml (application-level) -->
-    <Window.Styles />
 </Window>

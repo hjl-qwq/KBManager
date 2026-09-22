@@ -202,14 +202,12 @@ public class ThemeManager
   ""BackgroundInputColor"": ""#FFFFFF"",      // 输入框背景
   ""BackgroundSidebarColor"": ""#F5F5F5"",    // 左侧导航背景
   ""BackgroundSectionColor"": ""#F8F8F8"",    // 设置页分段背景
-  ""BackgroundHeaderRowColor"": ""#F5F5F5"",  // 表格表头
   ""BackgroundFooterColor"": ""#FAFAFA"",     // 表格底部摘要
   ""BackgroundStatusBarColor"": ""#F0F0F0"",  // 状态栏
   ""BackgroundDarkColor"": ""#1E1E1E"",       // 日志输出区
   ""BackgroundChipColor"": ""#E3F2FD"",       // 标签芯片
   ""BackgroundHoverColor"": ""#F5F5F5"",      // 列表项悬停
   ""BackgroundSelectedColor"": ""#E3F2FD"",   // 列表项选中
-  ""BackgroundNavHoverColor"": ""#E8E8E8"",   // 导航按钮悬停
   ""BackgroundNavPressedColor"": ""#D0D0D0"", // 导航按钮按下
 
   // ── 边框色 ──
@@ -223,7 +221,49 @@ public class ThemeManager
   // ── 光标 / 特殊 ──
   ""CaretColor"": ""#333333"",
   ""WatermarkColor"": ""#AAAAAA"",              // 输入框占位文字
-  ""ScrollBarThumbColor"": ""#C0C0C0""         // 滚动条滑块
+  ""ScrollBarThumbColor"": ""#C0C0C0"",         // 滚动条滑块
+
+  // ══════════════════════════════════════════════════════
+  //  VS Code 风格工作区布局
+  // ══════════════════════════════════════════════════════
+
+  // ── 活动栏（最左侧竖条）──
+  ""ActivityBarBackgroundColor"": ""#EDEDED"",
+  ""ActivityBarForegroundColor"": ""#4A4A4A"",
+  ""ActivityBarActiveForegroundColor"": ""#0078D4"",
+  ""ActivityBarHoverBackgroundColor"": ""#E0E0E0"",
+  ""ActivityBarActiveBackgroundColor"": ""#FFFFFF"",
+  ""ActivityBarBorderColor"": ""#E0E0E0"",
+  ""AccentBarColor"": ""#0078D4"",              // 当前项左侧高亮条
+
+  // ── 侧边栏 / 工具栏 ──
+  ""SidebarSectionHeaderColor"": ""#6B6B6B"",   // 「资源管理器」等小节标题
+  ""ToolbarBackgroundColor"": ""#F3F3F3"",
+  ""ToolbarBorderColor"": ""#E4E4E4"",
+  ""EmptyStateColor"": ""#9A9A9A"",             // 「未打开文件」提示文字
+
+  // ── 编辑器 ──
+  ""EditorBackgroundColor"": ""#FFFFFF"",
+  ""EditorForegroundColor"": ""#1F1F1F"",
+  ""EditorGutterBackgroundColor"": ""#F8F8F8"", // 行号栏背景
+  ""EditorLineNumberColor"": ""#A0A0A0"",
+  ""EditorCaretColor"": ""#1F1F1F"",
+  ""EditorSelectionColor"": ""#ADD6FF"",
+
+  // ── 文档标签页 ──
+  ""TabBarBackgroundColor"": ""#ECECEC"",
+  ""TabActiveBackgroundColor"": ""#FFFFFF"",
+  ""TabInactiveBackgroundColor"": ""#ECECEC"",
+  ""TabActiveForegroundColor"": ""#1F1F1F"",
+  ""TabInactiveForegroundColor"": ""#6B6B6B"",
+  ""TabHoverBackgroundColor"": ""#E0E0E0"",
+  ""TabBorderColor"": ""#D4D4D4"",
+  ""TabDirtyIndicatorColor"": ""#E8A33D"",      // 未保存圆点
+
+  // ── 标签芯片 / 悬浮弹窗 ──
+  ""ChipBorderColor"": ""#BBDEFB"",
+  ""PopupBackgroundColor"": ""#FFFFFF"",
+  ""PopupBorderColor"": ""#C8C8C8""             // 悬浮标签弹窗边框
 }
 ";
         File.WriteAllText(path, sample, System.Text.Encoding.UTF8);

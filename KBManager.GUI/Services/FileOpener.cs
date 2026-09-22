@@ -5,13 +5,10 @@ using System.Threading.Tasks;
 namespace KBManager.GUI.Services;
 
 /// <summary>
-/// Default file opener that delegates to the OS default application.
-/// Replace or decorate with an embedded Markdown editor later.
+/// Opens files with the OS default application (Explorer → 外部打开).
 /// </summary>
 public class FileOpener : IFileOpener
 {
-    public bool HasBuiltInEditor => false;
-
     public Task OpenFileAsync(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
@@ -43,11 +40,5 @@ public class FileOpener : IFileOpener
         }
 
         return Task.CompletedTask;
-    }
-
-    public Task OpenWithBuiltInEditorAsync(string filePath)
-    {
-        // Placeholder — will be replaced when a built-in editor is added.
-        return OpenFileAsync(filePath);
     }
 }

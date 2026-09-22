@@ -33,6 +33,42 @@
             <Setter Property="Foreground" Value="{DynamicResource WatermarkColor}" />
         </Style>
 
+        <!-- Slim TextBox（侧边栏过滤框等，VS Code 的输入行高度） -->
+        <Style Selector="TextBox.slim">
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="MinHeight" Value="22" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderInputColor}" />
+            <Setter Property="CornerRadius" Value="2" />
+        </Style>
+        <Style Selector="TextBox.slim:focus">
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderFocusColor}" />
+        </Style>
+
+        <!-- ===== 编辑器专用 TextBox ===== -->
+        <Style Selector="TextBox.editor">
+            <Setter Property="Background" Value="{DynamicResource EditorBackgroundColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource EditorForegroundColor}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource EditorCaretColor}" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource EditorSelectionColor}" />
+            <Setter Property="FontFamily" Value="Cascadia Code, Consolas, DejaVu Sans Mono, monospace" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="LineHeight" Value="20" />
+            <Setter Property="Padding" Value="8,8" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="AcceptsTab" Value="True" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+            <Setter Property="MinHeight" Value="0" />
+            <!-- Inner scrolling disabled so the TextBox grows inside the outer
+                 ScrollViewer and the line-number gutter stays aligned. -->
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        </Style>
+
         <!-- ListBox 全局背景 -->
         <Style Selector="ListBox">
             <Setter Property="Background" Value="{DynamicResource BackgroundDefaultColor}" />
@@ -66,21 +102,33 @@
 
         <!-- TreeView 全局 -->
         <Style Selector="TreeView">
-            <Setter Property="Background" Value="{DynamicResource BackgroundDefaultColor}" />
+            <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}" />
         </Style>
+        <!-- 紧凑行高：贴近 VS Code 资源管理器的 22px 列表行 -->
         <Style Selector="TreeViewItem">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}" />
             <Setter Property="Background" Value="Transparent" />
+            <Setter Property="MinHeight" Value="22" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="12.5" />
         </Style>
-        <Style Selector="TreeViewItem:selected">
+        <Style Selector="TreeViewItem:selected /template/ Border#PART_LayoutRoot">
             <Setter Property="Background" Value="{DynamicResource BackgroundSelectedColor}" />
         </Style>
-        <Style Selector="TreeViewItem:pointerover">
+        <Style Selector="TreeViewItem:pointerover /template/ Border#PART_LayoutRoot">
             <Setter Property="Background" Value="{DynamicResource BackgroundHoverColor}" />
         </Style>
+        <!--
+            Push expansion state onto the container. The setter must run as a
+            reflection binding because a Style has no x:DataType of its own, and the
+            real DataContext (the tree node) only exists per container.
+        -->
+        <Style Selector="TreeViewItem" x:CompileBindings="False">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+        </Style>
 
-        <!-- Buttons: primary -->
+        <!-- ===== 按钮：主 / 危险 / 次要 ===== -->
         <Style Selector="Button.primary">
             <Setter Property="Background" Value="{DynamicResource PrimaryColor}" />
             <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}" />
@@ -93,7 +141,6 @@
             <Setter Property="Background" Value="{DynamicResource PrimaryHoverColor}" />
         </Style>
 
-        <!-- Buttons: danger -->
         <Style Selector="Button.danger">
             <Setter Property="Background" Value="{DynamicResource DangerColor}" />
             <Setter Property="Foreground" Value="{DynamicResource DangerForegroundColor}" />
@@ -105,7 +152,6 @@
             <Setter Property="Background" Value="{DynamicResource DangerHoverColor}" />
         </Style>
 
-        <!-- Buttons: secondary -->
         <Style Selector="Button.secondary">
             <Setter Property="Background" Value="{DynamicResource SecondaryColor}" />
             <Setter Property="Foreground" Value="{DynamicResource SecondaryForegroundColor}" />
@@ -117,22 +163,224 @@
             <Setter Property="Background" Value="{DynamicResource SecondaryHoverColor}" />
         </Style>
 
-        <!-- Buttons: nav -->
-        <Style Selector="Button.nav">
+        <!-- ===== 按钮：工具栏小按钮 ===== -->
+        <Style Selector="Button.toolbar">
             <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryColor}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.toolbar /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="Button.toolbar:pointerover">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="Padding" Value="20,10" />
+        </Style>
+        <Style Selector="Button.toolbar:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BackgroundHoverColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultColor}" />
+        </Style>
+        <Style Selector="Button.toolbar:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedColor}" />
+            <Setter Property="Opacity" Value="0.5" />
+        </Style>
+
+        <!-- ===== 按钮：侧边栏标题栏上的极简按钮（VS Code 的 20px 图标按钮） ===== -->
+        <Style Selector="Button.icon">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryColor}" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Padding" Value="5,2" />
+            <Setter Property="MinHeight" Value="20" />
             <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.icon /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Padding" Value="5,2" />
+        </Style>
+        <Style Selector="Button.icon:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}" />
+        </Style>
+        <Style Selector="Button.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BackgroundHoverColor}" />
+        </Style>
+        <Style Selector="Button.icon:disabled">
+            <Setter Property="Opacity" Value="0.4" />
+        </Style>
+
+        <!-- ===== 按钮：活动栏（最左侧竖条） ===== -->        <Style Selector="Button.activity">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource ActivityBarForegroundColor}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Padding" Value="0,12" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.activity /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+        </Style>
+        <Style Selector="Button.activity:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource ActivityBarHoverBackgroundColor}" />
+        </Style>
+        <Style Selector="Button.activity:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource ActivityBarActiveForegroundColor}" />
+        </Style>
+        <!-- .active 放在 hover 之后，保证选中态优先 -->
+        <Style Selector="Button.activity.active">
+            <Setter Property="Foreground" Value="{DynamicResource ActivityBarActiveForegroundColor}" />
+        </Style>
+        <Style Selector="Button.activity.active /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource ActivityBarActiveBackgroundColor}" />
+        </Style>
+
+        <!-- ===== 按钮：文档标签页 ===== -->
+        <Style Selector="Button.tab">
+            <Setter Property="Background" Value="{DynamicResource TabInactiveBackgroundColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource TabInactiveForegroundColor}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
-        <Style Selector="Button.nav:pointerover">
-            <Setter Property="Background" Value="{DynamicResource BackgroundNavHoverColor}" />
+        <Style Selector="Button.tab /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
         </Style>
-        <Style Selector="Button.nav:pressed">
+        <Style Selector="Button.tab:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource TabHoverBackgroundColor}" />
+        </Style>
+        <!-- .active 放在 hover 之后，保证选中态优先 -->
+        <Style Selector="Button.tab.active">
+            <Setter Property="Background" Value="{DynamicResource TabActiveBackgroundColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource TabActiveForegroundColor}" />
+        </Style>
+        <Style Selector="Button.tab.active /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource TabActiveBackgroundColor}" />
+        </Style>
+
+        <!-- ===== 按钮：关闭标签 / 移除芯片 ===== -->
+        <Style Selector="Button.tabclose">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedColor}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.tabclose /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="3" />
+        </Style>
+        <Style Selector="Button.tabclose:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}" />
+        </Style>
+        <Style Selector="Button.tabclose:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource BackgroundNavPressedColor}" />
+        </Style>
+
+        <!-- ===== 按钮：搜索结果行（整行可点击） ===== -->
+        <Style Selector="Button.result">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="Button.result /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="10,7" />
+        </Style>
+        <Style Selector="Button.result:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BackgroundHoverColor}" />
+        </Style>
+
+        <!-- ===== 布局容器 ===== -->
+        <Style Selector="Border.activitybar">
+            <Setter Property="Background" Value="{DynamicResource ActivityBarBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ActivityBarBorderColor}" />
+            <Setter Property="BorderThickness" Value="0,0,1,0" />
+        </Style>
+        <Style Selector="Border.sidebar">
+            <Setter Property="Background" Value="{DynamicResource BackgroundSidebarColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultColor}" />
+            <Setter Property="BorderThickness" Value="0,0,1,0" />
+        </Style>
+        <Style Selector="Border.toolbar">
+            <Setter Property="Background" Value="{DynamicResource ToolbarBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ToolbarBorderColor}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+        </Style>
+        <Style Selector="Border.statusbar">
+            <Setter Property="Background" Value="{DynamicResource BackgroundStatusBarColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultColor}" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+        </Style>
+        <Style Selector="Border.editorhost">
+            <Setter Property="Background" Value="{DynamicResource EditorBackgroundColor}" />
+        </Style>
+        <Style Selector="Border.tabstrip">
+            <Setter Property="Background" Value="{DynamicResource TabBarBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TabBorderColor}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+        </Style>
+        <Style Selector="Border.gutter">
+            <Setter Property="Background" Value="{DynamicResource EditorGutterBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultColor}" />
+            <Setter Property="BorderThickness" Value="0,0,1,0" />
+        </Style>
+        <Style Selector="Border.chip">
+            <Setter Property="Background" Value="{DynamicResource BackgroundChipColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ChipBorderColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="Padding" Value="7,2" />
+        </Style>
+        <!-- 悬浮标签预览：轻薄、圆角、柔和的投影，避免“一大块”的突兀感 -->
+        <Style Selector="Border.popup">
+            <Setter Property="Background" Value="{DynamicResource PopupBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PopupBorderColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="9,7" />
+            <Setter Property="BoxShadow" Value="0 2 10 0 #26000000" />
+        </Style>
+
+        <!-- GridSplitter -->
+        <Style Selector="GridSplitter">
+            <Setter Property="Background" Value="{DynamicResource BorderDefaultColor}" />
+        </Style>
+        <Style Selector="GridSplitter:pointerover">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor}" />
         </Style>
 
         <!-- Separator -->

@@ -15,12 +15,6 @@ public partial class RepoOpsView : UserControl
         AvaloniaXamlLoader.Load(this);
     }
 
-    protected override void OnAttachedToVisualTree(global::Avalonia.VisualTreeAttachmentEventArgs e)
-    {
-        base.OnAttachedToVisualTree(e);
-        if (DataContext is ViewModels.RepoOpsViewModel vm)
-        {
-            vm.ActivateCommand.Execute(null);
-        }
-    }
+    // NOTE: the shell calls RepoOpsViewModel.Activate() when the Git tab is opened.
+    // Doing it here as well would re-log the config on every tab switch.
 }

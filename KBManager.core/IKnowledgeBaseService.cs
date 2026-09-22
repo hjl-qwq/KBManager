@@ -10,12 +10,31 @@ namespace KBManager.core
     public interface IKnowledgeBaseService
     {
         Task<ServiceResult> CreateDatabaseAsync(string repositoryDirectory);
+
+        /// <summary>
+        /// True when the index database file already exists for this repository.
+        /// Lets callers bootstrap an empty repository without string-matching errors.
+        /// </summary>
+        bool DatabaseExists(string repositoryDirectory);
+
         Task<ServiceResult> AddFileAsync(string repositoryDirectory, string fileName);
+
+        /// <summary>
+        /// Ensure a file has an index record, creating it when missing.
+        /// Returns true when a new record was inserted.
+        /// </summary>
+        Task<ServiceResult<bool>> EnsureFileIndexedAsync(string repositoryDirectory, string fileName);
         Task<ServiceResult<List<FileEntryDto>>> ListFilesWithTagsAsync(string repositoryDirectory);
         Task<ServiceResult> AddTagToFileAsync(string repositoryDirectory, string fileName, string tagName);
         Task<ServiceResult<List<FileEntryDto>>> SearchFilesByTagAsync(string repositoryDirectory, string tagName);
         Task<ServiceResult> RemoveTagFromFileAsync(string repositoryDirectory, string fileName, string tagName);
         Task<ServiceResult> DeleteFileAsync(string repositoryDirectory, string fileName);
+
+        /// <summary>
+        /// Move an index record to a new repository-relative path, preserving its
+        /// tags. Any stale record already at the destination is folded in.
+        /// </summary>
+        Task<ServiceResult> RenameFileAsync(string repositoryDirectory, string oldFileName, string newFileName);
         Task<ServiceResult<List<TagEntryDto>>> ListAllTagsAsync(string repositoryDirectory);
         Task<ServiceResult<List<TagWithCountDto>>> GetTagsWithFileCountAsync(string repositoryDirectory);
         Task<ServiceResult<FileEntryDto?>> GetFileWithTagsAsync(string repositoryDirectory, string fileName);

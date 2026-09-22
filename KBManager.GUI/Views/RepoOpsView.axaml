@@ -8,7 +8,7 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
-            <TextBlock Text="📦 Git 操作"
+            <TextBlock Text="Git 操作"
                        FontSize="20"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryColor}" />
@@ -19,10 +19,10 @@
 
         <!-- Action Buttons -->
         <WrapPanel Grid.Row="1" Margin="0,0,0,12">
-            <Button Classes="primary" Content="📥 Clone" Command="{Binding CloneRepositoryCommand}" Margin="0,0,8,8" />
-            <Button Classes="primary" Content="📌 Main Add" Command="{Binding MainAddCommand}" Margin="0,0,8,8" />
-            <Button Classes="primary" Content="📌 Sub Add" Command="{Binding SubmoduleAddCommand}" Margin="0,0,8,8" />
-            <Button Classes="secondary" Content="📋 查看配置" Command="{Binding ShowConfigCommand}" Margin="0,0,8,8" />
+            <Button Classes="primary" Content="Clone" Command="{Binding CloneRepositoryCommand}" Margin="0,0,8,8" />
+            <Button Classes="primary" Content="Main Add" Command="{Binding MainAddCommand}" Margin="0,0,8,8" />
+            <Button Classes="primary" Content="Sub Add" Command="{Binding SubmoduleAddCommand}" Margin="0,0,8,8" />
+            <Button Classes="secondary" Content="查看配置" Command="{Binding ShowConfigCommand}" Margin="0,0,8,8" />
         </WrapPanel>
 
         <!-- Commit Section -->
@@ -48,17 +48,17 @@
 
                 <Button Grid.Row="2" Grid.Column="0"
                         Classes="primary"
-                        Content="💾 Main Commit"
+                        Content="Main Commit"
                         Command="{Binding MainCommitCommand}"
                         Margin="0,0,8,8" />
                 <Button Grid.Row="2" Grid.Column="1"
                         Classes="secondary"
-                        Content="💾 Sub Commit"
+                        Content="Sub Commit"
                         Command="{Binding SubmoduleCommitCommand}"
                         Margin="0,0,8,8" />
                 <Button Grid.Row="2" Grid.Column="2"
                         Classes="danger"
-                        Content="🚀 Push (SSH)"
+                        Content="Push (SSH)"
                         Command="{Binding PushCommand}"
                         Margin="0,0,0,8" />
 
@@ -78,7 +78,7 @@
                 </Border>
 
                 <TextBlock Grid.Row="4" Grid.ColumnSpan="3"
-                           Text="💡 提示: Push 操作使用 SSH 密钥（自动检测 ~/.ssh/id_ed25519 或 id_rsa）"
+                           Text="提示: Push 操作使用 SSH 密钥（自动检测 ~/.ssh/id_ed25519 或 id_rsa）"
                            FontSize="11"
                            Foreground="{DynamicResource TextMutedColor}"
                            Margin="0,8,0,0" />

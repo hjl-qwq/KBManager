@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:KBManager.GUI.ViewModels"
+             x:Class="KBManager.GUI.Views.LogView"
+             x:DataType="vm:LogViewModel">
+    <Grid RowDefinitions="Auto,Auto,*" Margin="20,16">
+
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,12">
+            <TextBlock Text="日志"
+                       FontSize="16"
+                       FontWeight="SemiBold" />
+            <TextBlock Text="本次会话的诊断记录。出错时请把这里的内容连同日志文件一起提供。"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextMutedColor}" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                <TextBlock Text="{Binding LogFilePath}"
+                           FontSize="11"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource TextSecondaryColor}" />
+                <TextBlock Text="{Binding Summary}"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextMutedColor}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Button Classes="secondary" Content="刷新" Command="{Binding ReloadCommand}" />
+                <Button Classes="secondary" Content="复制" Command="{Binding CopyLogCommand}" />
+                <Button Classes="primary" Content="打开日志文件" Command="{Binding OpenLogFileCommand}" />
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="2"
+                Background="{DynamicResource BackgroundDarkColor}"
+                CornerRadius="4"
+                Padding="12">
+            <ScrollViewer>
+                <SelectableTextBlock Text="{Binding LogText}"
+                                     FontFamily="Cascadia Code, Consolas, DejaVu Sans Mono, monospace"
+                                     FontSize="11.5"
+                                     TextWrapping="Wrap"
+                                     Foreground="{DynamicResource TextOnDarkColor}" />
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

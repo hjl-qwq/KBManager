@@ -32,6 +32,21 @@ namespace KBManager.core
             }
         }
 
+        public bool DatabaseExists(string repositoryDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(repositoryDirectory)) return false;
+
+            try
+            {
+                using var context = new FileTagDbContext(repositoryDirectory);
+                return context.CheckDatabaseExists();
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public async Task<ServiceResult> AddFileAsync(string repositoryDirectory, string fileName)
         {
             if (string.IsNullOrWhiteSpace(repositoryDirectory))
@@ -56,6 +71,37 @@ namespace KBManager.core
             catch (Exception ex)
             {
                 return ServiceResult.Fail($"Failed to add file: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Ensure the given file has an index record, creating the database and the
+        /// row when needed. Returns true when a new row was inserted.
+        /// </summary>
+        public async Task<ServiceResult<bool>> EnsureFileIndexedAsync(string repositoryDirectory, string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(repositoryDirectory))
+                return ServiceResult<bool>.Fail("Repository directory is required.");
+            if (string.IsNullOrWhiteSpace(fileName))
+                return ServiceResult<bool>.Fail("File name cannot be empty.");
+
+            try
+            {
+                using var context = new FileTagDbContext(repositoryDirectory);
+                if (!context.CheckDatabaseExists())
+                    await context.CreateDatabaseAsync();
+
+                var existing = await context.Files.FirstOrDefaultAsync(f => f.FileName == fileName);
+                if (existing != null)
+                    return ServiceResult<bool>.Ok(false, $"File '{fileName}' is already indexed.");
+
+                context.Files.Add(new FileInfo { FileName = fileName });
+                await context.SaveChangesAsync();
+                return ServiceResult<bool>.Ok(true, $"Indexed file '{fileName}'.");
+            }
+            catch (Exception ex)
+            {
+                return ServiceResult<bool>.Fail($"Failed to index file: {ex.Message}");
             }
         }
 
@@ -135,12 +181,18 @@ namespace KBManager.core
             {
                 using var context = new FileTagDbContext(repositoryDirectory);
                 if (!context.CheckDatabaseExists())
-                    return ServiceResult.Fail("Database does not exist. Create one first.");
+                    await context.CreateDatabaseAsync();
 
                 var file = await context.Files.Include(f => f.Tags)
                     .FirstOrDefaultAsync(f => f.FileName == fileName);
+
+                // A file created through the editor may not be indexed yet.
+                // Index it on the fly rather than refusing to tag it.
                 if (file == null)
-                    return ServiceResult.Fail($"File '{fileName}' not found in database.");
+                {
+                    file = new FileInfo { FileName = fileName };
+                    context.Files.Add(file);
+                }
 
                 if (file.Tags.Any(t => t.TagName == tagName))
                     return ServiceResult.Fail($"Tag '{tagName}' already exists on file '{fileName}'.");
@@ -173,19 +225,23 @@ namespace KBManager.core
                 if (!context.CheckDatabaseExists())
                     return ServiceResult<List<FileEntryDto>>.Fail("Database does not exist. Create one first.");
 
-                var tag = await context.Tags
-                    .Include(t => t.Files)
-                    .FirstOrDefaultAsync(t => t.TagName == tagName);
+                // Match via the relation table and eager-load every tag, so a result
+                // row can show the file's full tag set rather than just the match.
+                var files = await context.Files
+                    .Include(f => f.Tags)
+                    .Where(f => f.Tags.Any(t => t.TagName == tagName))
+                    .OrderBy(f => f.FileName)
+                    .ToListAsync();
 
-                if (tag == null || tag.Files.Count == 0)
+                if (files.Count == 0)
                     return ServiceResult<List<FileEntryDto>>.Ok(new List<FileEntryDto>(),
                         $"No files found with tag '{tagName}'.");
 
-                var dtos = tag.Files.Select(f => new FileEntryDto
+                var dtos = files.Select(f => new FileEntryDto
                 {
                     FileName = f.FileName,
-                    Tags = new List<string> { tagName }
-                }).OrderBy(f => f.FileName).ToList();
+                    Tags = f.Tags.Select(t => t.TagName).OrderBy(t => t).ToList()
+                }).ToList();
 
                 return ServiceResult<List<FileEntryDto>>.Ok(dtos,
                     $"Found {dtos.Count} file(s) with tag '{tagName}'.");
@@ -279,6 +335,60 @@ namespace KBManager.core
             catch (Exception ex)
             {
                 return ServiceResult.Fail($"Failed to delete file: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResult> RenameFileAsync(string repositoryDirectory, string oldFileName, string newFileName)
+        {
+            if (string.IsNullOrWhiteSpace(repositoryDirectory))
+                return ServiceResult.Fail("Repository directory is required.");
+            if (string.IsNullOrWhiteSpace(oldFileName))
+                return ServiceResult.Fail("Old file name cannot be empty.");
+            if (string.IsNullOrWhiteSpace(newFileName))
+                return ServiceResult.Fail("New file name cannot be empty.");
+
+            if (string.Equals(oldFileName, newFileName, StringComparison.Ordinal))
+                return ServiceResult.Ok("File path unchanged.");
+
+            try
+            {
+                using var context = new FileTagDbContext(repositoryDirectory);
+                if (!context.CheckDatabaseExists())
+                    return ServiceResult.Fail("Database does not exist.");
+
+                var file = await context.Files.Include(f => f.Tags)
+                    .FirstOrDefaultAsync(f => f.FileName == oldFileName);
+                if (file == null)
+                    return ServiceResult.Fail($"File '{oldFileName}' not found in database.");
+
+                // Drop any stale record at the destination so the unique index on
+                // FileName cannot be violated by the move.
+                var destination = await context.Files.Include(f => f.Tags)
+                    .FirstOrDefaultAsync(f => f.FileName == newFileName);
+                if (destination != null)
+                {
+                    var destinationTags = destination.Tags.ToList();
+                    context.Files.Remove(destination);
+                    await context.SaveChangesAsync();
+
+                    foreach (var tag in destinationTags)
+                    {
+                        var tagInDb = await context.Tags.Include(t => t.Files)
+                            .FirstOrDefaultAsync(t => t.Id == tag.Id);
+                        if (tagInDb != null && tagInDb.Files.Count == 0)
+                            context.Tags.Remove(tagInDb);
+                    }
+                    await context.SaveChangesAsync();
+                }
+
+                file.FileName = newFileName;
+                await context.SaveChangesAsync();
+
+                return ServiceResult.Ok($"Index record moved to '{newFileName}'.");
+            }
+            catch (Exception ex)
+            {
+                return ServiceResult.Fail($"Failed to rename file record: {ex.Message}");
             }
         }
 

@@ -9,6 +9,10 @@ using System.Threading.Tasks;
 
 namespace KBManager.GUI.Views;
 
+/// <summary>
+/// The search sidebar: tag autocomplete plus a result list that opens files in
+/// the editor area.
+/// </summary>
 public partial class SearchView : UserControl
 {
     private TextBox? _tagTextBox;
@@ -35,23 +39,22 @@ public partial class SearchView : UserControl
 
         if (_tagTextBox != null)
         {
-            _tagTextBox.GotFocus += TagTextBox_GotFocus;
-            _tagTextBox.LostFocus += TagTextBox_LostFocus;
+            _tagTextBox.GotFocus += OnTagTextBoxGotFocus;
+            _tagTextBox.LostFocus += OnTagTextBoxLostFocus;
+            _tagTextBox.KeyDown += OnTagTextBoxKeyDown;
         }
 
         if (_suggestionListBox != null)
-        {
-            _suggestionListBox.SelectionChanged += SuggestionListBox_SelectionChanged;
-        }
+            _suggestionListBox.SelectionChanged += OnSuggestionSelectionChanged;
     }
 
-    private void TagTextBox_GotFocus(object? sender, GotFocusEventArgs e)
+    private void OnTagTextBoxGotFocus(object? sender, GotFocusEventArgs e)
     {
         if (DataContext is SearchViewModel vm)
-            vm.LoadSuggestionsCommand.Execute(null);
+            _ = vm.LoadSuggestionsCommand.ExecuteAsync(null);
     }
 
-    private async void TagTextBox_LostFocus(object? sender, RoutedEventArgs e)
+    private async void OnTagTextBoxLostFocus(object? sender, RoutedEventArgs e)
     {
         _lostFocusCts?.Cancel();
         var cts = new CancellationTokenSource();
@@ -59,6 +62,7 @@ public partial class SearchView : UserControl
 
         try
         {
+            // Give a click on the dropdown time to register before closing it.
             await Task.Delay(200, cts.Token);
             if (DataContext is SearchViewModel vm)
                 vm.CloseSuggestionsCommand.Execute(null);
@@ -68,22 +72,30 @@ public partial class SearchView : UserControl
         }
     }
 
-    private void SuggestionListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    private async void OnTagTextBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || DataContext is not SearchViewModel vm) return;
+
+        if (vm.SearchCommand.CanExecute(null))
+            await vm.SearchCommand.ExecuteAsync(null);
+        e.Handled = true;
+    }
+
+    private void OnSuggestionSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_handlingSuggestionSelection) return;
         if (sender is not ListBox listBox) return;
-        if (listBox.SelectedItem is not TagSuggestion suggestion) return;
+        if (listBox.SelectedItem is not TagSuggestionItem suggestion) return;
         if (DataContext is not SearchViewModel vm) return;
 
         _handlingSuggestionSelection = true;
         _lostFocusCts?.Cancel();
-        var captured = suggestion;
         listBox.SelectedItem = null;
 
-        // Defer so we don't mutate ItemsSource mid-selection.
-        Dispatcher.UIThread.Post(() =>
+        // Defer so the ItemsSource is not mutated mid-selection.
+        Dispatcher.UIThread.Post(async () =>
         {
-            vm.SelectSuggestionCommand.Execute(captured);
+            await vm.SelectSuggestionCommand.ExecuteAsync(suggestion);
             _handlingSuggestionSelection = false;
         });
     }

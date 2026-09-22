@@ -62,17 +62,22 @@ public partial class App : Application
         services.AddSingleton<KBManager.core.GitHelper>();
         services.AddSingleton<KBManager.core.IKnowledgeBaseService, KBManager.core.KnowledgeBaseService>();
         services.AddSingleton<KBManager.core.IFileScanService, KBManager.core.FileScanService>();
+        services.AddSingleton<KBManager.core.IFileContentService, KBManager.core.FileContentService>();
 
         // GUI services
         services.AddSingleton<IFileOpener, FileOpener>();
         services.AddSingleton<IDialogService, DialogService>();
 
-        // ViewModels
-        services.AddTransient<SearchViewModel>();
-        services.AddTransient<FileListViewModel>();
+        // ViewModels — the shell is a singleton; panels are long-lived; documents
+        // are created one per open file.
+        services.AddSingleton<ExplorerViewModel>();
+        services.AddSingleton<SearchViewModel>();
+        services.AddSingleton<MainViewModel>();
+
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<RepoOpsViewModel>();
-        services.AddSingleton<MainViewModel>();
+        services.AddTransient<LogViewModel>();
+        services.AddTransient<FileDocumentViewModel>();
 
         return services.BuildServiceProvider();
     }

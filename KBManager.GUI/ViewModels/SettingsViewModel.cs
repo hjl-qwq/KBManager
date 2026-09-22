@@ -30,9 +30,6 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _repositoryDirectory = string.Empty;
 
-    [ObservableProperty]
-    private bool _isLoaded;
-
     public SettingsViewModel(GitHelper gitHelper, IDialogService dialogService, MainViewModel mainVm)
     {
         _gitHelper = gitHelper;
@@ -52,10 +49,12 @@ public partial class SettingsViewModel : ViewModelBase
         RemoteHttps = config.RemoteAddressHttps ?? string.Empty;
         RemoteSsh = config.RemoteAddressSsh ?? string.Empty;
         RepositoryDirectory = config.RepositoryDirectory ?? string.Empty;
-        IsLoaded = true;
 
         StatusMessage = "配置已加载";
     }
+
+    /// <summary>Load the form. Called by the shell when the settings tab opens.</summary>
+    public void Load() => LoadConfig();
 
     /// <summary>
     /// Save config from form fields.
@@ -85,7 +84,9 @@ public partial class SettingsViewModel : ViewModelBase
         if (ok)
         {
             StatusMessage = "配置保存成功 ✓";
-            _mainVm.RefreshRepoInfo();
+            // A new repository directory changes the whole workspace, not just
+            // the status bar, so reload the tree and counters.
+            await _mainVm.ReloadWorkspaceAsync();
             await _dialogService.ShowInfoAsync("成功", "配置已保存。");
         }
         else

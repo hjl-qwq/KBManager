@@ -7,7 +7,7 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,24">
-            <TextBlock Text="⚙ 设置"
+            <TextBlock Text="设置"
                        FontSize="20"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryColor}" />
@@ -116,7 +116,7 @@
                                      Margin="0,0,8,0" />
                             <Button Grid.Column="1"
                                     Classes="secondary"
-                                    Content="📂 浏览"
+                                    Content="浏览"
                                     Command="{Binding BrowseDirectoryCommand}"
                                     Width="100" />
                         </Grid>
@@ -125,7 +125,7 @@
 
                 <!-- Save Button -->
                 <Button Classes="primary"
-                        Content="💾 保存配置"
+                        Content="保存配置"
                         Command="{Binding SaveConfigCommand}"
                         HorizontalAlignment="Left"
                         Width="140"

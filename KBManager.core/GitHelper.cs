@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
@@ -11,6 +11,33 @@ namespace KBManager.core
     {
         public string GitUserName { get; set; }
         public string GitUserEmail { get; set; }
+
+        /// <summary>
+        /// Optional secondary sink for Git progress output. The GUI attaches one so
+        /// the Git panel can show live logs, instead of redirecting Console.Out for
+        /// the whole process (which also captured unrelated writers).
+        /// </summary>
+        public TextWriter? LogSink { get; set; }
+
+        /// <summary>
+        /// When false, no interactive console prompt is ever issued. The GUI sets
+        /// this so a missing SSH key fails fast instead of blocking on stdin.
+        /// </summary>
+        public bool Interactive { get; set; } = true;
+
+        /// <summary>Write one line of progress to the console and the optional sink.</summary>
+        private void Log(string message = "")
+        {
+            Console.WriteLine(message);
+            LogSink?.WriteLine(message);
+        }
+
+        /// <summary>Write text with no trailing newline (used for prompts).</summary>
+        private void LogRaw(string message)
+        {
+            Console.Write(message);
+            LogSink?.Write(message);
+        }
 
         /// <summary>
         /// Check if directory empty
@@ -69,7 +96,7 @@ namespace KBManager.core
             string ed25519Key = Path.Combine(sshDir, "id_ed25519");
             if (File.Exists(ed25519Key))
             {
-                Console.WriteLine($"Detected ED25519 SSH key: {ed25519Key}");
+                Log($"Detected ED25519 SSH key: {ed25519Key}");
                 return ed25519Key;
             }
 
@@ -77,13 +104,19 @@ namespace KBManager.core
             string rsaKey = Path.Combine(sshDir, "id_rsa");
             if (File.Exists(rsaKey))
             {
-                Console.WriteLine($"Detected RSA SSH key: {rsaKey}");
+                Log($"Detected RSA SSH key: {rsaKey}");
                 return rsaKey;
             }
 
             // If no auto-detected key, prompt user to input path
-            Console.WriteLine("No default SSH key found (id_ed25519/id_rsa)");
-            Console.Write("Enter full path to your SSH private key: ");
+            Log("No default SSH key found (id_ed25519/id_rsa)");
+            if (!Interactive)
+            {
+                Log("No interactive console available; SSH key must be configured on disk.");
+                return string.Empty;
+            }
+
+            LogRaw("Enter full path to your SSH private key: ");
             string customKeyPath = Console.ReadLine()?.Trim();
 
             return string.IsNullOrEmpty(customKeyPath) ? string.Empty : customKeyPath;
@@ -93,7 +126,7 @@ namespace KBManager.core
         {
             if (config == null)
             {
-                Console.WriteLine("Config object cannot be null.");
+                Log("Config object cannot be null.");
                 return false;
             }
 
@@ -101,7 +134,7 @@ namespace KBManager.core
 
             if (IsDirectoryExistsAndNotEmpty(config.RepositoryDirectory))
             {
-                Console.WriteLine($"Target directory is not empty: {config.RepositoryDirectory}");
+                Log($"Target directory is not empty: {config.RepositoryDirectory}");
                 return false;
             }
 
@@ -109,13 +142,13 @@ namespace KBManager.core
 
             if (string.IsNullOrEmpty(config.RemoteAddressSsh))
             {
-                Console.WriteLine("Ssh remote address is empty, use https");
+                Log("Ssh remote address is empty, use https");
                 goto CloneViaHttps;
             }
             try
             {
                 CloneAndInitSubmodules(config.RemoteAddressSsh, tempDirectory);
-                Console.WriteLine($"Repository cloned successfully from {config.RemoteAddressSsh} to: {tempDirectory}");
+                Log($"Repository cloned successfully from {config.RemoteAddressSsh} to: {tempDirectory}");
                 CopyDirectoryCrossPlatform(
                     sourceDir: tempDirectory,
                     destDir: config.RepositoryDirectory,
@@ -125,9 +158,9 @@ namespace KBManager.core
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Clone failed from ssh address {config.RemoteAddressSsh}, try https");
-                Console.WriteLine($"Clone failed: {ex.Message}");
-                Console.WriteLine($"Full error details:\n{ex.ToString()}");
+                Log($"Clone failed from ssh address {config.RemoteAddressSsh}, try https");
+                Log($"Clone failed: {ex.Message}");
+                Log($"Full error details:\n{ex.ToString()}");
             }
             finally
             {
@@ -139,7 +172,7 @@ CloneViaHttps:
             try
             {
                 CloneAndInitSubmodules(config.RemoteAddressHttps, tempDirectory);
-                Console.WriteLine($"Repository cloned successfully from {config.RemoteAddressHttps} to: {tempDirectory}");
+                Log($"Repository cloned successfully from {config.RemoteAddressHttps} to: {tempDirectory}");
                 CopyDirectoryCrossPlatform(
                     sourceDir: tempDirectory,
                     destDir: config.RepositoryDirectory,
@@ -149,9 +182,9 @@ CloneViaHttps:
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Clone failed from https address {config.RemoteAddressHttps}");
-                Console.WriteLine($"Clone failed: {ex.Message}");
-                Console.WriteLine($"Full error details:\n{ex.ToString()}");
+                Log($"Clone failed from https address {config.RemoteAddressHttps}");
+                Log($"Clone failed: {ex.Message}");
+                Log($"Full error details:\n{ex.ToString()}");
                 return false;
             }
             finally
@@ -192,7 +225,7 @@ CloneViaHttps:
             {
                 foreach (var submodule in repo.Submodules)
                 {
-                    Console.WriteLine($"Initializing submodule: {submodule.Name} ({submodule.Url})");
+                    Log($"Initializing submodule: {submodule.Name} ({submodule.Url})");
                     try
                     {
                         var updateOptions = new SubmoduleUpdateOptions
@@ -211,11 +244,11 @@ CloneViaHttps:
                         }
 
                         repo.Submodules.Update(submodule.Name, updateOptions);
-                        Console.WriteLine($"  Submodule '{submodule.Name}' initialized successfully.");
+                        Log($"  Submodule '{submodule.Name}' initialized successfully.");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"  Warning: failed to initialize submodule '{submodule.Name}': {ex.Message}");
+                        Log($"  Warning: failed to initialize submodule '{submodule.Name}': {ex.Message}");
                     }
                 }
             }
@@ -224,7 +257,7 @@ CloneViaHttps:
         /// <summary>
         /// Recursively clear read-only attributes and delete a temp directory.
         /// </summary>
-        private static void CleanupTempDirectory(string tempDirectory)
+        private void CleanupTempDirectory(string tempDirectory)
         {
             if (!Directory.Exists(tempDirectory)) return;
 
@@ -241,7 +274,7 @@ CloneViaHttps:
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Warning: failed to clean up temp directory: {ex.Message}");
+                Log($"Warning: failed to clean up temp directory: {ex.Message}");
             }
         }
 
@@ -253,7 +286,7 @@ CloneViaHttps:
         {
             if (string.IsNullOrEmpty(config.RepositoryDirectory))
             {
-                Console.WriteLine("Error: RepositoryDirectory cannot be empty");
+                Log("Error: RepositoryDirectory cannot be empty");
                 return false;
             }
 
@@ -287,17 +320,17 @@ CloneViaHttps:
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"  Skipped '{entry.FilePath}': {ex.Message}");
+                            Log($"  Skipped '{entry.FilePath}': {ex.Message}");
                         }
                     }
 
-                    Console.WriteLine($"Staged {staged} file(s) in main repository");
+                    Log($"Staged {staged} file(s) in main repository");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to stage files: {ex.Message}");
+                Log($"Failed to stage files: {ex.Message}");
                 return false;
             }
         }
@@ -307,7 +340,7 @@ CloneViaHttps:
             if (!gitConfig.ValidateCoreConfig()) return false;
             if (string.IsNullOrEmpty(gitCommit.CommitMessage))
             {
-                Console.WriteLine("Error: CommitMessage cannot be empty");
+                Log("Error: CommitMessage cannot be empty");
                 return false;
             }
 
@@ -321,20 +354,20 @@ CloneViaHttps:
                 {
                     if (!repo.RetrieveStatus().IsDirty)
                     {
-                        Console.WriteLine("No changes to commit (working directory clean)");
+                        Log("No changes to commit (working directory clean)");
                         return true;
                     }
 
                     var commit = repo.Commit(gitCommit.CommitMessage, author, author);
-                    Console.WriteLine($"Commit successful! Commit ID: {commit.Sha[..7]}");
-                    Console.WriteLine($"Commit message: {gitCommit.CommitMessage}");
-                    Console.WriteLine($"User info: {finalUserName} <{finalUserEmail}>");
+                    Log($"Commit successful! Commit ID: {commit.Sha[..7]}");
+                    Log($"Commit message: {gitCommit.CommitMessage}");
+                    Log($"User info: {finalUserName} <{finalUserEmail}>");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to commit changes: {ex.Message}");
+                Log($"Failed to commit changes: {ex.Message}");
                 return false;
             }
         }
@@ -348,7 +381,7 @@ CloneViaHttps:
         {
             if (string.IsNullOrEmpty(config.RepositoryDirectory))
             {
-                Console.WriteLine("Error: RepositoryDirectory cannot be empty");
+                Log("Error: RepositoryDirectory cannot be empty");
                 return false;
             }
 
@@ -364,13 +397,13 @@ CloneViaHttps:
                         total += StageChangesInRepo(subPath, submodule.Name);
                     }
 
-                    Console.WriteLine($"Submodule add complete — {total} file(s) staged across all submodules");
+                    Log($"Submodule add complete — {total} file(s) staged across all submodules");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Submodule add failed: {ex.Message}");
+                Log($"Submodule add failed: {ex.Message}");
                 return false;
             }
         }
@@ -381,7 +414,7 @@ CloneViaHttps:
             if (!gitConfig.ValidateCoreConfig()) return false;
             if (string.IsNullOrEmpty(gitCommit.CommitMessage))
             {
-                Console.WriteLine("Error: CommitMessage cannot be empty");
+                Log("Error: CommitMessage cannot be empty");
                 return false;
             }
 
@@ -403,19 +436,19 @@ CloneViaHttps:
                             committed++;
                     }
 
-                    Console.WriteLine($"Submodule commit complete — {committed} submodule(s) committed");
+                    Log($"Submodule commit complete — {committed} submodule(s) committed");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Submodule commit failed: {ex.Message}");
+                Log($"Submodule commit failed: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>Commit inside a submodule if it has staged changes. Returns true if committed.</summary>
-        private static bool CommitIfDirty(string repoPath, string label, string message, Signature author)
+        private bool CommitIfDirty(string repoPath, string label, string message, Signature author)
         {
             try
             {
@@ -425,19 +458,19 @@ CloneViaHttps:
 
                     var subMsg = $"{message} [submodule: {label}]";
                     var commit = repo.Commit(subMsg, author, author);
-                    Console.WriteLine($"  Submodule '{label}': committed {commit.Sha[..7]}");
+                    Log($"  Submodule '{label}': committed {commit.Sha[..7]}");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  Submodule '{label}': commit skipped — {ex.Message}");
+                Log($"  Submodule '{label}': commit skipped — {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>Stage all changes inside a repository (used for submodules).</summary>
-        private static int StageChangesInRepo(string repoPath, string label)
+        private int StageChangesInRepo(string repoPath, string label)
         {
             try
             {
@@ -456,13 +489,13 @@ CloneViaHttps:
                         catch { /* skip */ }
                     }
                     if (count > 0)
-                        Console.WriteLine($"  Submodule '{label}': staged {count} file(s)");
+                        Log($"  Submodule '{label}': staged {count} file(s)");
                     return count;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  Submodule '{label}': {ex.Message}");
+                Log($"  Submodule '{label}': {ex.Message}");
                 return 0;
             }
         }
@@ -477,13 +510,13 @@ CloneViaHttps:
         {
             if (string.IsNullOrEmpty(config.RepositoryDirectory))
             {
-                Console.WriteLine("Error: RepositoryDirectory cannot be empty");
+                Log("Error: RepositoryDirectory cannot be empty");
                 return false;
             }
 
             if (string.IsNullOrEmpty(config.RemoteAddressSsh))
             {
-                Console.WriteLine("Error: SSH remote address cannot be both empty");
+                Log("Error: SSH remote address cannot be both empty");
                 return false;
             }
 
@@ -491,7 +524,7 @@ CloneViaHttps:
             string sshKeyPath = GetSshKeyPath();
             if (string.IsNullOrEmpty(sshKeyPath) || !File.Exists(sshKeyPath))
             {
-                Console.WriteLine($"Error: SSH key file not found at {sshKeyPath}");
+                Log($"Error: SSH key file not found at {sshKeyPath}");
                 return false;
             }
 
@@ -520,7 +553,7 @@ CloneViaHttps:
                         repo.Network.Remotes.Remove("origin");
                     }
                     var remote = repo.Network.Remotes.Add("origin", config.RemoteAddressSsh);
-                    Console.WriteLine($"Configured remote origin (SSH): {config.RemoteAddressSsh}");
+                    Log($"Configured remote origin (SSH): {config.RemoteAddressSsh}");
 
                     // SSH push configuration (ED25519 compatible)
                     var pushOptions = new PushOptions
@@ -537,32 +570,32 @@ CloneViaHttps:
                     var branch = repo.Head;
                     if (branch == null)
                     {
-                        Console.WriteLine("Error: No active branch found in repository");
+                        Log("Error: No active branch found in repository");
                         return false;
                     }
 
                     // Execute SSH push with ED25519 key
                     repo.Network.Push(remote, $"refs/heads/{branch.FriendlyName}", pushOptions);
 
-                    Console.WriteLine("Push operation completed successfully via SSH (ED25519 key)!");
-                    Console.WriteLine($"Pushed branch: {branch.FriendlyName} to remote: {remote.Name}");
+                    Log("Push operation completed successfully via SSH (ED25519 key)!");
+                    Log($"Pushed branch: {branch.FriendlyName} to remote: {remote.Name}");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to push changes via SSH: {ex.Message}");
-                Console.WriteLine("\nTroubleshooting steps for ED25519 key:");
-                Console.WriteLine("1. Verify ED25519 public key is added to remote: https://gitee.com/profile/sshkeys");
-                Console.WriteLine("2. Test SSH connection: ssh -T git@gitee.com (should return 'Hi username!')");
-                Console.WriteLine("3. Check ED25519 key permissions (chmod 600 ~/.ssh/id_ed25519 on Linux/Mac)");
-                Console.WriteLine($"Full error details:\n{ex.ToString()}");
+                Log($"Failed to push changes via SSH: {ex.Message}");
+                Log("\nTroubleshooting steps for ED25519 key:");
+                Log("1. Verify ED25519 public key is added to remote: https://gitee.com/profile/sshkeys");
+                Log("2. Test SSH connection: ssh -T git@gitee.com (should return 'Hi username!')");
+                Log("3. Check ED25519 key permissions (chmod 600 ~/.ssh/id_ed25519 on Linux/Mac)");
+                Log($"Full error details:\n{ex.ToString()}");
                 return false;
             }
         }
 
         /// <summary>Push a single submodule using its own remote.</summary>
-        private static void PushSubmodule(string subPath, string label, string sshKeyPath, string passphrase)
+        private void PushSubmodule(string subPath, string label, string sshKeyPath, string passphrase)
         {
             try
             {
@@ -574,7 +607,7 @@ CloneViaHttps:
                     var subRemote = subRepo.Network.Remotes["origin"];
                     if (subRemote == null)
                     {
-                        Console.WriteLine($"  Submodule '{label}': no origin remote, skipping push");
+                        Log($"  Submodule '{label}': no origin remote, skipping push");
                         return;
                     }
 
@@ -590,19 +623,26 @@ CloneViaHttps:
                     };
 
                     subRepo.Network.Push(subRemote, $"refs/heads/{subBranch.FriendlyName}", pushOpts);
-                    Console.WriteLine($"  Submodule '{label}': pushed {subBranch.FriendlyName}");
+                    Log($"  Submodule '{label}': pushed {subBranch.FriendlyName}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  Submodule '{label}': push skipped — {ex.Message}");
+                Log($"  Submodule '{label}': push skipped — {ex.Message}");
             }
         }
 
         /// <summary>Read SSH passphrase once, shared across all push operations.</summary>
-        private static string ReadPassphrase()
+        private string ReadPassphrase()
         {
-            Console.Write("Enter ED25519 SSH key passphrase (leave empty if none): ");
+            if (!Interactive)
+            {
+                // No console to prompt on (GUI): assume an unencrypted key.
+                Log("No interactive console available; assuming an unencrypted SSH key.");
+                return string.Empty;
+            }
+
+            LogRaw("Enter ED25519 SSH key passphrase (leave empty if none): ");
             string passphrase = string.Empty;
 
             ConsoleKeyInfo key;
@@ -619,7 +659,7 @@ CloneViaHttps:
                 }
             } while (key.Key != ConsoleKey.Enter);
 
-            Console.WriteLine();
+            Log();
             return passphrase;
         }
 
@@ -634,7 +674,7 @@ CloneViaHttps:
 
             if (!gitConfig.ValidateCoreConfig() || !gitConfig.ValidateCloneConfig())
             {
-                Console.WriteLine("Cannot pass git config validation");
+                Log("Cannot pass git config validation");
                 return false;
             }
 
@@ -645,8 +685,8 @@ CloneViaHttps:
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Save GitConfig failed: {ex.Message}");
-                Console.WriteLine($"Full error details:\n{ex.ToString()}");
+                Log($"Save GitConfig failed: {ex.Message}");
+                Log($"Full error details:\n{ex.ToString()}");
                 return false;
             }
         }
@@ -661,8 +701,8 @@ CloneViaHttps:
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Read GitConfig failed: {ex.Message}");
-                Console.WriteLine($"Full error details:\n{ex.ToString()}");
+                Log($"Read GitConfig failed: {ex.Message}");
+                Log($"Full error details:\n{ex.ToString()}");
                 return new GitConfigModel();
             }
         }

@@ -50,6 +50,24 @@ public class DialogService : IDialogService
         await dialog.ShowDialog(window);
     }
 
+    public async Task<string?> PromptForTextAsync(string title, string prompt, string? initialValue = null)
+    {
+        var window = GetMainWindow();
+        if (window == null) return null;
+
+        var dialog = new TextInputDialog(title, prompt, initialValue);
+        return await dialog.ShowDialog<string?>(window);
+    }
+
+    public async Task<UnsavedChangesChoice> ConfirmUnsavedChangesAsync(string fileName)
+    {
+        var window = GetMainWindow();
+        if (window == null) return UnsavedChangesChoice.Cancel;
+
+        var dialog = new UnsavedChangesDialog(fileName);
+        return await dialog.ShowDialog<UnsavedChangesChoice>(window);
+    }
+
     public async Task<string?> PickFolderAsync(string title, string? defaultPath = null)
     {
         var window = GetMainWindow();

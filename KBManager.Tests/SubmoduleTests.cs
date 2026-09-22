@@ -167,9 +167,9 @@ namespace KBManager.Tests
             Assert.NotNull(result.Data);
             var files = result.Data!;
 
-            // Should only contain doc1.md and doc2.txt
+            // Only Markdown files are indexed, so doc2.txt is intentionally excluded.
             Assert.Contains("doc1.md", files);
-            Assert.Contains("doc2.txt", files);
+            Assert.DoesNotContain("doc2.txt", files);
             Assert.DoesNotContain(".git/config", files);
             Assert.DoesNotContain(files, f => f.StartsWith(".git/"));
             Assert.DoesNotContain(files, f => f.StartsWith(".kbdatabase/"));

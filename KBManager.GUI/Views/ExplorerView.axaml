@@ -1,0 +1,184 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:KBManager.GUI.ViewModels"
+             x:Class="KBManager.GUI.Views.ExplorerView"
+             x:DataType="vm:ExplorerViewModel">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+        <!-- ═══ Section header, VS Code style: title + compact actions ═══ -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="10,8,6,4">
+            <TextBlock Grid.Column="0"
+                       Text="{Binding FileSummary}"
+                       FontSize="11"
+                       FontWeight="SemiBold"
+                       LetterSpacing="0.4"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource SidebarSectionHeaderColor}" />
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+                <Button Classes="icon" Content="新建"
+                        Command="{Binding NewFileCommand}"
+                        ToolTip.Tip="新建 Markdown 文件" />
+                <Button Classes="icon" Content="同步"
+                        Command="{Binding SyncFilesCommand}"
+                        ToolTip.Tip="扫描仓库并更新索引" />
+                <Button Classes="icon" Content="折叠"
+                        Command="{Binding CollapseAllCommand}"
+                        ToolTip.Tip="折叠所有目录" />
+            </StackPanel>
+        </Grid>
+
+        <!-- ═══ Slim filter ═══ -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="10,0,6,5">
+            <TextBox Grid.Column="0"
+                     Name="FilterBox"
+                     Classes="slim"
+                     Text="{Binding FilterText}"
+                     Watermark="按文件名过滤…" />
+            <Button Grid.Column="1"
+                    Classes="icon"
+                    Content="✕"
+                    Margin="2,0,0,0"
+                    IsVisible="{Binding HasFilter}"
+                    Command="{Binding ClearFilterCommand}"
+                    ToolTip.Tip="清除过滤" />
+        </Grid>
+
+        <!-- ═══ File tree: compact rows, right-aligned badges, context menu ═══ -->
+        <TreeView Grid.Row="2"
+                  Name="FileTreeView"
+                  Padding="0,0,0,4"
+                  ItemsSource="{Binding FileTree}"
+                  SelectedItem="{Binding SelectedNode, Mode=TwoWay}">
+            <TreeView.ItemTemplate>
+                <TreeDataTemplate DataType="vm:FileTreeNode" ItemsSource="{Binding Children}">
+                    <!--
+                        Tag preview. ToolTip.ShowDelay is in milliseconds, so 1000 = the
+                        required one-second dwell; Placement=Pointer anchors the popup
+                        just below-right of the cursor. The tooltip host is an in-window
+                        overlay that inherits this row's DataContext.
+                    -->
+                    <Grid ColumnDefinitions="*,Auto"
+                          Background="Transparent"
+                          ToolTip.ShowDelay="1000"
+                          ToolTip.Placement="Pointer"
+                          ToolTip.HorizontalOffset="14"
+                          ToolTip.VerticalOffset="12"
+                          ToolTip.BetweenShowDelay="200">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding Name}"
+                                   FontSize="12.5"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" />
+
+                        <!-- Tag count badge (files) -->
+                        <Border Grid.Column="1"
+                                Margin="6,0,8,0"
+                                Padding="5,0"
+                                CornerRadius="7"
+                                MinWidth="16"
+                                Height="14"
+                                VerticalAlignment="Center"
+                                Background="{DynamicResource BackgroundChipColor}"
+                                IsVisible="{Binding HasTags}">
+                            <TextBlock Text="{Binding TagCount}"
+                                       FontSize="9.5"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextLinkColor}" />
+                        </Border>
+
+                        <!-- Child count (directories) -->
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding FileCount}"
+                                   Margin="6,0,8,0"
+                                   FontSize="10"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextMutedColor}"
+                                   IsVisible="{Binding ShowFileCountBadge}" />
+
+                        <!-- Row actions: a popup cannot bind back to the explorer, so
+                             the commands live on the node itself. -->
+                        <Grid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="打开" Command="{Binding ActivateCommand}" />
+                                <Separator />
+                                <MenuItem Header="重命名 / 移动…"
+                                          Command="{Binding RenameCommand}"
+                                          IsVisible="{Binding IsFile}" />
+                                <MenuItem Header="用外部程序打开"
+                                          Command="{Binding OpenExternallyCommand}"
+                                          IsVisible="{Binding IsFile}" />
+                                <Separator />
+                                <MenuItem Header="删除…"
+                                          Command="{Binding DeleteCommand}"
+                                          IsVisible="{Binding IsFile}" />
+                            </ContextMenu>
+                        </Grid.ContextMenu>
+
+                        <ToolTip.Tip>
+                            <Border Classes="popup" MinWidth="150" MaxWidth="280">
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="{Binding Name}"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding FullPath}"
+                                               FontSize="10"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextMutedColor}" />
+
+                                    <!-- Tags of the hovered file -->
+                                    <ItemsControl ItemsSource="{Binding Tags}"
+                                                  IsVisible="{Binding HasTags}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="x:String">
+                                                <Border Classes="chip" Margin="0,0,4,3">
+                                                    <TextBlock Text="{Binding}"
+                                                               FontSize="10.5"
+                                                               Foreground="{DynamicResource TextLinkColor}" />
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <TextBlock Text="暂无标签"
+                                               FontSize="10.5"
+                                               Foreground="{DynamicResource TextMutedColor}"
+                                               IsVisible="{Binding ShowEmptyTagHint}" />
+                                </StackPanel>
+                            </Border>
+                        </ToolTip.Tip>
+                    </Grid>
+                </TreeDataTemplate>
+            </TreeView.ItemTemplate>
+        </TreeView>
+
+        <!-- ═══ Hint / status ═══ -->
+        <TextBlock Grid.Row="3"
+                   Margin="10,6,10,8"
+                   FontSize="10.5"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextMutedColor}"
+                   IsVisible="{Binding !IsRepositoryConfigured}"
+                   Text="尚未配置仓库目录。请在左下角「设置」中填写本地知识库路径。" />
+
+        <StackPanel Grid.Row="3" Margin="10,6,10,8" Spacing="2"
+                    IsVisible="{Binding IsRepositoryConfigured}">
+            <TextBlock FontSize="10.5"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextMutedColor}"
+                       Text="双击打开 · 右键更多操作 · 悬浮 1 秒预览标签" />
+            <TextBlock FontSize="10.5"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextMutedColor}"
+                       Text="{Binding StatusMessage}" />
+        </StackPanel>
+    </Grid>
+</UserControl>
