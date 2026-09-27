@@ -63,26 +63,26 @@
                         just below-right of the cursor. The tooltip host is an in-window
                         overlay that inherits this row's DataContext.
 
-                        The badge column is a fixed width rather than auto-sized, so the
-                        name column is the same width on every row (tagged, untagged and
-                        folders alike) and the text is always cut on one straight line.
+                        One cell, three layers: the name fills the whole row and the badge /
+                        file count floats on top of it. Nothing is reserved for the badge,
+                        so a name reaches the row's right edge whether or not there is one.
                     -->
-                    <Grid ColumnDefinitions="*,38"
-                          Background="Transparent"
+                    <Grid Background="Transparent"
                           ToolTip.ShowDelay="1000"
                           ToolTip.Placement="Pointer"
                           ToolTip.HorizontalOffset="14"
                           ToolTip.VerticalOffset="12"
                           ToolTip.BetweenShowDelay="200">
                         <!--
-                            Names that do not fit are clipped at the column edge instead of
-                            being shortened with an ellipsis: the text runs right up to the
-                            edge and disappears "under" it, so dragging the sidebar keeps a
-                            continuous edge (an ellipsis re-lays out the run and leaves a
-                            ragged gap before the edge). The full name is still in the hover
-                            preview above.
+                            Names that do not fit are clipped at the row's right edge
+                            instead of being shortened with an ellipsis: the text runs right
+                            up to the edge and disappears "under" it, so every row is cut on
+                            the same line and dragging the sidebar reads as a continuous
+                            edge being covered (an ellipsis re-lays out the run and leaves a
+                            ragged gap before the edge). A name that runs under a badge is
+                            covered by it; the full name is always in the hover preview.
                         -->
-                        <Border Grid.Column="0" ClipToBounds="True">
+                        <Border ClipToBounds="True">
                             <TextBlock Text="{Binding Name}"
                                        FontSize="12.5"
                                        VerticalAlignment="Center"
@@ -90,9 +90,8 @@
                                        TextTrimming="None" />
                         </Border>
 
-                        <!-- Tag count badge (files) -->
-                        <Border Grid.Column="1"
-                                Margin="0,0,8,0"
+                        <!-- Tag count badge (files), floating over the name -->
+                        <Border Margin="0,0,8,0"
                                 Padding="5,0"
                                 CornerRadius="7"
                                 MinWidth="16"
@@ -108,9 +107,8 @@
                                        Foreground="{DynamicResource TextLinkColor}" />
                         </Border>
 
-                        <!-- Child count (directories) -->
-                        <TextBlock Grid.Column="1"
-                                   Text="{Binding FileCount}"
+                        <!-- Child count (directories), floating over the name -->
+                        <TextBlock Text="{Binding FileCount}"
                                    Margin="0,0,8,0"
                                    FontSize="10"
                                    HorizontalAlignment="Right"
@@ -237,10 +235,8 @@
                 </ToolTip.Tip>
             </Border>
 
-            <TextBlock FontSize="10.5"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource TextMutedColor}"
-                       Text="单击预览 · 双击打开 · 右键更多操作 · 悬浮 1 秒预览标签" />
+            <!-- 操作提示（“单击预览 · 双击打开 …”）已移除：目录栏底部只留状态消息，
+                 交互说明写在文档里，界面上不再占一行。 -->
             <TextBlock FontSize="10.5"
                        TextWrapping="Wrap"
                        Foreground="{DynamicResource TextMutedColor}"
