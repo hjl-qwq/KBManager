@@ -62,27 +62,42 @@
                         required one-second dwell; Placement=Pointer anchors the popup
                         just below-right of the cursor. The tooltip host is an in-window
                         overlay that inherits this row's DataContext.
+
+                        The badge column is a fixed width rather than auto-sized, so the
+                        name column is the same width on every row (tagged, untagged and
+                        folders alike) and the text is always cut on one straight line.
                     -->
-                    <Grid ColumnDefinitions="*,Auto"
+                    <Grid ColumnDefinitions="*,38"
                           Background="Transparent"
                           ToolTip.ShowDelay="1000"
                           ToolTip.Placement="Pointer"
                           ToolTip.HorizontalOffset="14"
                           ToolTip.VerticalOffset="12"
                           ToolTip.BetweenShowDelay="200">
-                        <TextBlock Grid.Column="0"
-                                   Text="{Binding Name}"
-                                   FontSize="12.5"
-                                   VerticalAlignment="Center"
-                                   TextTrimming="CharacterEllipsis" />
+                        <!--
+                            Names that do not fit are clipped at the column edge instead of
+                            being shortened with an ellipsis: the text runs right up to the
+                            edge and disappears "under" it, so dragging the sidebar keeps a
+                            continuous edge (an ellipsis re-lays out the run and leaves a
+                            ragged gap before the edge). The full name is still in the hover
+                            preview above.
+                        -->
+                        <Border Grid.Column="0" ClipToBounds="True">
+                            <TextBlock Text="{Binding Name}"
+                                       FontSize="12.5"
+                                       VerticalAlignment="Center"
+                                       TextWrapping="NoWrap"
+                                       TextTrimming="None" />
+                        </Border>
 
                         <!-- Tag count badge (files) -->
                         <Border Grid.Column="1"
-                                Margin="6,0,8,0"
+                                Margin="0,0,8,0"
                                 Padding="5,0"
                                 CornerRadius="7"
                                 MinWidth="16"
                                 Height="14"
+                                HorizontalAlignment="Right"
                                 VerticalAlignment="Center"
                                 Background="{DynamicResource BackgroundChipColor}"
                                 IsVisible="{Binding HasTags}">
@@ -96,8 +111,9 @@
                         <!-- Child count (directories) -->
                         <TextBlock Grid.Column="1"
                                    Text="{Binding FileCount}"
-                                   Margin="6,0,8,0"
+                                   Margin="0,0,8,0"
                                    FontSize="10"
+                                   HorizontalAlignment="Right"
                                    VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextMutedColor}"
                                    IsVisible="{Binding ShowFileCountBadge}" />
