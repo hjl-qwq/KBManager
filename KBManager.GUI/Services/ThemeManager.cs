@@ -198,7 +198,7 @@ public class ThemeManager
   // ── 背景色 ──
   ""BackgroundDefaultColor"": ""#FFFFFF"",    // 主内容区背景
   ""BackgroundInputColor"": ""#FFFFFF"",      // 输入框背景
-  ""BackgroundCountColumnColor"": ""#0D000000"",      // 资源管理器计数栏（半透明）
+  ""BackgroundCountColumnColor"": ""#1A1565C0"",      // 资源管理器计数栏（半透明主色）
   ""BackgroundSidebarColor"": ""#F5F5F5"",    // 左侧导航背景
   ""BackgroundSectionColor"": ""#F8F8F8"",    // 设置页分段背景
   ""BackgroundFooterColor"": ""#FAFAFA"",     // 表格底部摘要
@@ -213,6 +213,7 @@ public class ThemeManager
   ""BorderDefaultColor"": ""#E0E0E0"",        // 通用边框、分隔线
   ""BorderInputColor"": ""#D0D0D0"",          // 输入框边框
   ""BorderFocusColor"": ""#0078D4"",          // 输入框聚焦边框
+  ""BorderCountColumnColor"": ""#3D1565C0"",     // 计数栏与文件名之间的细线
 
   // ── 光标 / 特殊 ──
   ""CaretColor"": ""#333333"",

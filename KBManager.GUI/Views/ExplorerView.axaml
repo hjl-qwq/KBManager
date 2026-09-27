@@ -98,12 +98,15 @@
 
                         <!-- The count column: its own faint background plus a hairline on
                              the left, so the badge / file count reads as a separate strip
-                             instead of blending into the file name next to it. The tint is
-                             semi-transparent, so the row's hover and selection colours
-                             still show through it. -->
+                             instead of blending into the file name next to it. Both come
+                             from the accent hue (not grey) and are semi-transparent, so the
+                             row's selection and hover colours still show through and the
+                             strip stays in the same colour family as the tag badges.
+                             The band only tiles seamlessly because TreeViewItem rows are
+                             stretched to their full height, see App.axaml. -->
                         <Border Grid.Column="1"
                                 Background="{DynamicResource BackgroundCountColumnColor}"
-                                BorderBrush="{DynamicResource BorderDefaultColor}"
+                                BorderBrush="{DynamicResource BorderCountColumnColor}"
                                 BorderThickness="1,0,0,0" />
 
                         <!-- Tag count badge (files), right-aligned in the count column -->
