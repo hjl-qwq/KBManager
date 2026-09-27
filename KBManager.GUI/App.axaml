@@ -249,6 +249,10 @@
             <Setter Property="CornerRadius" Value="3" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="VerticalAlignment" Value="Center" />
+            <!-- 文字内容默认是 Stretch（会被画在顶部），所以显式居中；
+                 否则按钮文字和旁边的标题文字不在同一条水平线上。 -->
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.icon /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="Transparent" />

@@ -26,6 +26,7 @@
   "BackgroundSelectedColor": "#E3F2FD",
   "BackgroundNavPressedColor": "#D0D0D0",
   "BackgroundInputColor": "#FFFFFF",
+  "BackgroundCountColumnColor": "#0D000000",
   "BorderDefaultColor": "#E0E0E0",
   "BorderInputColor": "#D0D0D0",
   "BorderFocusColor": "#0078D4",

@@ -5,8 +5,10 @@
              x:DataType="vm:ExplorerViewModel">
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-        <!-- ═══ Section header, VS Code style: title + compact actions ═══ -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="10,8,6,4">
+        <!-- ═══ Section header, VS Code style: title + compact actions ═══
+             固定行高 20px，摘要文字与三个按钮都以这一行的中线对齐（按钮内容也显式居中，
+             见 App.axaml 的 Button.icon）。 -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="10,8,6,4" Height="20">
             <TextBlock Grid.Column="0"
                        Text="{Binding FileSummary}"
                        FontSize="11"
@@ -16,7 +18,10 @@
                        TextTrimming="CharacterEllipsis"
                        Foreground="{DynamicResource SidebarSectionHeaderColor}" />
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="2"
+                        VerticalAlignment="Center">
                 <Button Classes="icon" Content="新建"
                         Command="{Binding NewFileCommand}"
                         ToolTip.Tip="新建 Markdown 文件" />
@@ -63,14 +68,12 @@
                         just below-right of the cursor. The tooltip host is an in-window
                         overlay that inherits this row's DataContext.
 
-                        The badge column is a fixed 32px rather than auto-sized, so the
+                        The badge column is a fixed 28px rather than auto-sized, so the
                         name column is the same width on every row (tagged, untagged and
                         folders alike) and the text is always cut on one straight line.
-                        32 keeps the badge clear of the name instead of letting the name
-                        run underneath it (which made the last characters unreadable)
-                        without reserving the old, wider 38px gutter.
+                        28 = 4px gap + 16px badge + the badge's 8px gap to the row edge.
                     -->
-                    <Grid ColumnDefinitions="*,32"
+                    <Grid ColumnDefinitions="*,28"
                           Background="Transparent"
                           ToolTip.ShowDelay="1000"
                           ToolTip.Placement="Pointer"
@@ -93,7 +96,17 @@
                                        TextTrimming="None" />
                         </Border>
 
-                        <!-- Tag count badge (files), right-aligned in the reserved column -->
+                        <!-- The count column: its own faint background plus a hairline on
+                             the left, so the badge / file count reads as a separate strip
+                             instead of blending into the file name next to it. The tint is
+                             semi-transparent, so the row's hover and selection colours
+                             still show through it. -->
+                        <Border Grid.Column="1"
+                                Background="{DynamicResource BackgroundCountColumnColor}"
+                                BorderBrush="{DynamicResource BorderDefaultColor}"
+                                BorderThickness="1,0,0,0" />
+
+                        <!-- Tag count badge (files), right-aligned in the count column -->
                         <Border Grid.Column="1"
                                 Margin="0,0,8,0"
                                 Padding="5,0"
@@ -111,7 +124,7 @@
                                        Foreground="{DynamicResource TextLinkColor}" />
                         </Border>
 
-                        <!-- Child count (directories), right-aligned in the reserved column -->
+                        <!-- Child count (directories), right-aligned in the count column -->
                         <TextBlock Grid.Column="1"
                                    Text="{Binding FileCount}"
                                    Margin="0,0,8,0"
