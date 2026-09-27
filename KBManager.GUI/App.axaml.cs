@@ -77,6 +77,7 @@ public partial class App : Application
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<RepoOpsViewModel>();
         services.AddTransient<LogViewModel>();
+        services.AddTransient<StaleRecordsViewModel>();
         services.AddTransient<FileDocumentViewModel>();
 
         return services.BuildServiceProvider();

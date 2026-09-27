@@ -15,6 +15,9 @@
             <DataTemplate DataType="vm:LogViewModel">
                 <views:LogView />
             </DataTemplate>
+            <DataTemplate DataType="vm:StaleRecordsViewModel">
+                <views:StaleRecordsView />
+            </DataTemplate>
         </ContentControl.DataTemplates>
     </ContentControl>
 </UserControl>

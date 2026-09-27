@@ -46,7 +46,7 @@
                            FontSize="10"
                            Margin="8,6,8,2"
                            Foreground="{DynamicResource TextMutedColor}" />
-                <ScrollViewer Grid.Row="1">
+                <ScrollViewer Grid.Row="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox Name="SuggestionListBox"
                              ItemsSource="{Binding TagSuggestions}"
                              Background="Transparent"
@@ -86,30 +86,53 @@
                    TextWrapping="Wrap"
                    Foreground="{DynamicResource TextMutedColor}" />
 
-        <!-- ═══ Results: click a row to open it in the editor ═══ -->
-        <ScrollViewer Grid.Row="3">
+        <!-- ═══ Results: click a row to open it in the editor ═══
+             横向滚动禁用：结果行的名字用省略号截断，避免底部出现一条横向滚动条。 -->
+        <ScrollViewer Grid.Row="3" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ItemsControl ItemsSource="{Binding Results}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:FileSearchResultItem">
-                        <Button Classes="result"
-                                Command="{Binding $parent[ItemsControl].((vm:SearchViewModel)DataContext).OpenResultCommand}"
-                                CommandParameter="{Binding}"
-                                ToolTip.Tip="{Binding RelativePath}">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="{Binding DisplayName}"
-                                           FontSize="12.5"
-                                           TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding DirectoryLabel}"
-                                           FontSize="10"
-                                           TextTrimming="CharacterEllipsis"
-                                           Foreground="{DynamicResource TextMutedColor}"
-                                           IsVisible="{Binding HasDirectoryLabel}" />
-                                <TextBlock Text="{Binding TagsDisplay}"
-                                           FontSize="10.5"
-                                           TextWrapping="Wrap"
-                                           Foreground="{DynamicResource TextLinkColor}" />
-                            </StackPanel>
-                        </Button>
+                        <!-- 行本身是按钮，所以"移除记录"放在同一行的另一列，
+                             避免按钮嵌套。磁盘上已不存在的行不可点击打开。 -->
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Button Grid.Column="0"
+                                    Classes="result"
+                                    Command="{Binding $parent[ItemsControl].((vm:SearchViewModel)DataContext).OpenResultCommand}"
+                                    CommandParameter="{Binding}"
+                                    IsEnabled="{Binding ExistsOnDisk}"
+                                    ToolTip.Tip="{Binding RelativePath}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{Binding DisplayName}"
+                                               FontSize="12.5"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding DirectoryLabel}"
+                                               FontSize="10"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource TextMutedColor}"
+                                               IsVisible="{Binding HasDirectoryLabel}" />
+                                    <TextBlock Text="{Binding TagsDisplay}"
+                                               FontSize="10.5"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextLinkColor}" />
+                                    <!-- 索引记录存在、但磁盘上文件已不在 -->
+                                    <TextBlock Text="{Binding MissingHint}"
+                                               FontSize="10"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextDangerColor}"
+                                               IsVisible="{Binding IsMissing}" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Grid.Column="1"
+                                    Classes="icon"
+                                    Content="移除记录"
+                                    Margin="4,0,8,0"
+                                    VerticalAlignment="Center"
+                                    IsVisible="{Binding IsMissing}"
+                                    Command="{Binding $parent[ItemsControl].((vm:SearchViewModel)DataContext).RemoveStaleRecordCommand}"
+                                    CommandParameter="{Binding}"
+                                    ToolTip.Tip="从索引中移除这条失效记录（磁盘文件不受影响）" />
+                        </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

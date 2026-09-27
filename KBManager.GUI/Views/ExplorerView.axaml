@@ -45,10 +45,13 @@
                     ToolTip.Tip="清除过滤" />
         </Grid>
 
-        <!-- ═══ File tree: compact rows, right-aligned badges, context menu ═══ -->
+        <!-- ═══ File tree: compact rows, right-aligned badges, context menu ═══
+             Horizontal scrolling is disabled so long names ellipsize instead of
+             producing a horizontal scrollbar that overlays the last row. -->
         <TreeView Grid.Row="2"
                   Name="FileTreeView"
                   Padding="0,0,0,4"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                   ItemsSource="{Binding FileTree}"
                   SelectedItem="{Binding SelectedNode, Mode=TwoWay}">
             <TreeView.ItemTemplate>
@@ -104,56 +107,54 @@
                             <ContextMenu>
                                 <MenuItem Header="打开" Command="{Binding ActivateCommand}" />
                                 <Separator />
-                                <MenuItem Header="重命名 / 移动…"
-                                          Command="{Binding RenameCommand}"
-                                          IsVisible="{Binding IsFile}" />
                                 <MenuItem Header="用外部程序打开"
                                           Command="{Binding OpenExternallyCommand}"
                                           IsVisible="{Binding IsFile}" />
+                                <MenuItem Header="打开所在目录"
+                                          Command="{Binding OpenContainingFolderCommand}"
+                                          IsVisible="{Binding IsFile}" />
                                 <Separator />
+                                <MenuItem Header="重命名 / 移动…"
+                                          Command="{Binding RenameCommand}"
+                                          IsVisible="{Binding IsFile}" />
                                 <MenuItem Header="删除…"
                                           Command="{Binding DeleteCommand}"
                                           IsVisible="{Binding IsFile}" />
                             </ContextMenu>
                         </Grid.ContextMenu>
 
+                        <!-- 悬浮预览：只有 ToolTip 这一层外观，内容只有文件名 + 标签 -->
                         <ToolTip.Tip>
-                            <Border Classes="popup" MinWidth="150" MaxWidth="280">
-                                <StackPanel Spacing="5">
-                                    <TextBlock Text="{Binding Name}"
-                                               FontSize="12"
-                                               FontWeight="SemiBold"
-                                               TextWrapping="Wrap" />
-                                    <TextBlock Text="{Binding FullPath}"
-                                               FontSize="10"
-                                               TextWrapping="Wrap"
-                                               Foreground="{DynamicResource TextMutedColor}" />
+                            <StackPanel Spacing="5" MinWidth="110" MaxWidth="260">
+                                <TextBlock Text="{Binding Name}"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap" />
 
-                                    <!-- Tags of the hovered file -->
-                                    <ItemsControl ItemsSource="{Binding Tags}"
-                                                  IsVisible="{Binding HasTags}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="x:String">
-                                                <Border Classes="chip" Margin="0,0,4,3">
-                                                    <TextBlock Text="{Binding}"
-                                                               FontSize="10.5"
-                                                               Foreground="{DynamicResource TextLinkColor}" />
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                <!-- Tags of the hovered file -->
+                                <ItemsControl ItemsSource="{Binding Tags}"
+                                              IsVisible="{Binding HasTags}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <Border Classes="chip" Margin="0,0,4,3">
+                                                <TextBlock Text="{Binding}"
+                                                           FontSize="10.5"
+                                                           Foreground="{DynamicResource TextLinkColor}" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
 
-                                    <TextBlock Text="暂无标签"
-                                               FontSize="10.5"
-                                               Foreground="{DynamicResource TextMutedColor}"
-                                               IsVisible="{Binding ShowEmptyTagHint}" />
-                                </StackPanel>
-                            </Border>
+                                <TextBlock Text="暂无标签"
+                                           FontSize="10.5"
+                                           Foreground="{DynamicResource TextMutedColor}"
+                                           IsVisible="{Binding ShowEmptyTagHint}" />
+                            </StackPanel>
                         </ToolTip.Tip>
                     </Grid>
                 </TreeDataTemplate>
@@ -169,8 +170,56 @@
                    IsVisible="{Binding !IsRepositoryConfigured}"
                    Text="尚未配置仓库目录。请在左下角「设置」中填写本地知识库路径。" />
 
-        <StackPanel Grid.Row="3" Margin="10,6,10,8" Spacing="2"
+        <StackPanel Grid.Row="3" Margin="10,6,10,8" Spacing="4"
                     IsVisible="{Binding IsRepositoryConfigured}">
+            <!-- 索引与实际目录不一致时的入口。
+                 这里只放一行计数 + 一个按钮：失效记录可能很多，把它们铺在侧边栏里会挤掉文件树，
+                 所以完整列表放在编辑区的一个标签页里（点按钮打开）。 -->
+            <Border IsVisible="{Binding HasStaleIndexRecords}"
+                    Background="{DynamicResource BackgroundSectionColor}"
+                    BorderBrush="{DynamicResource BorderDefaultColor}"
+                    BorderThickness="1"
+                    CornerRadius="3"
+                    Padding="8,6"
+                    ToolTip.Placement="Top"
+                    ToolTip.HorizontalOffset="0"
+                    ToolTip.VerticalOffset="-8">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding StaleSummary}"
+                               FontSize="10.5"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextDangerColor}" />
+
+                    <Button Classes="toolbar"
+                            Content="查看并清理…"
+                            HorizontalAlignment="Left"
+                            Command="{Binding OpenStaleRecordsCommand}" />
+                </StackPanel>
+
+                <!-- 浮层说明：向上弹出（这块面板贴着窗口底部，向下弹会被下沿挤压）；
+                     内容保持简短并固定宽度，避免因空间不足被裁成空框。 -->
+                <ToolTip.Tip>
+                    <StackPanel Width="270" Spacing="5">
+                        <TextBlock Text="失效记录是什么？"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryColor}" />
+                        <TextBlock FontSize="10.5"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryColor}"
+                                   Text="索引（数据库）里还留着、但磁盘上文件已经不存在的记录。" />
+                        <TextBlock Text="点按钮会做什么？"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryColor}" />
+                        <TextBlock FontSize="10.5"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryColor}"
+                                   Text="在右侧编辑区打开一页，列出全部失效记录，由你在那里决定是否清理。清理只删索引记录与标签，不动磁盘文件。" />
+                    </StackPanel>
+                </ToolTip.Tip>
+            </Border>
+
             <TextBlock FontSize="10.5"
                        TextWrapping="Wrap"
                        Foreground="{DynamicResource TextMutedColor}"

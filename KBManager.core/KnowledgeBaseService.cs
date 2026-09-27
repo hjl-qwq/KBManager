@@ -392,6 +392,37 @@ namespace KBManager.core
             }
         }
 
+        public async Task<ServiceResult<List<string>>> FindStaleRecordsAsync(
+            string repositoryDirectory,
+            IReadOnlyCollection<string> filesOnDisk)
+        {
+            if (string.IsNullOrWhiteSpace(repositoryDirectory))
+                return ServiceResult<List<string>>.Fail("Repository directory is required.");
+
+            try
+            {
+                using var context = new FileTagDbContext(repositoryDirectory);
+                if (!context.CheckDatabaseExists())
+                    return ServiceResult<List<string>>.Ok(new List<string>(), "No index exists yet.");
+
+                var onDisk = new HashSet<string>(
+                    filesOnDisk ?? Array.Empty<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+
+                var indexed = await context.Files.Select(f => f.FileName).ToListAsync();
+                var stale = indexed
+                    .Where(p => !onDisk.Contains(p))
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                return ServiceResult<List<string>>.Ok(stale, $"Found {stale.Count} stale record(s).");
+            }
+            catch (Exception ex)
+            {
+                return ServiceResult<List<string>>.Fail($"Failed to compare index with disk: {ex.Message}");
+            }
+        }
+
         public async Task<ServiceResult<List<TagEntryDto>>> ListAllTagsAsync(string repositoryDirectory)
         {
             if (string.IsNullOrWhiteSpace(repositoryDirectory))

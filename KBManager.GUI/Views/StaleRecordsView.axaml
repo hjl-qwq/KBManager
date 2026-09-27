@@ -1,0 +1,97 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:KBManager.GUI.ViewModels"
+             x:Class="KBManager.GUI.Views.StaleRecordsView"
+             x:DataType="vm:StaleRecordsViewModel">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="20,16">
+
+        <!-- ═══ Header ═══ -->
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,12">
+            <TextBlock Text="清理失效记录"
+                       FontSize="16"
+                       FontWeight="SemiBold" />
+            <TextBlock FontSize="12"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextMutedColor}"
+                       Text="下面这些路径只存在于索引（数据库）里，磁盘上已经没有对应文件。通常是因为文件在 KBManager 之外被删除或重命名了。这一页不会改动磁盘上的任何文件。" />
+        </StackPanel>
+
+        <!-- ═══ Summary + re-check ═══ -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Summary}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryColor}" />
+                <TextBlock Text="{Binding RepositoryPath, StringFormat='仓库: {0}'}"
+                           FontSize="11"
+                           TextTrimming="CharacterEllipsis"
+                           IsVisible="{Binding IsRepositoryConfigured}"
+                           Foreground="{DynamicResource TextMutedColor}" />
+            </StackPanel>
+
+            <Button Grid.Column="1"
+                    Classes="secondary"
+                    Content="重新检查"
+                    Command="{Binding ReloadCommand}" />
+        </Grid>
+
+        <!-- ═══ The full list ═══ -->
+        <Border Grid.Row="2"
+                BorderBrush="{DynamicResource BorderDefaultColor}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Background="{DynamicResource BackgroundDefaultColor}">
+            <Grid>
+                <ScrollViewer ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding Records}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Border BorderBrush="{DynamicResource BackgroundHoverColor}"
+                                        BorderThickness="0,0,0,1">
+                                    <TextBlock Text="{Binding}"
+                                               Margin="12,6"
+                                               FontSize="12"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip.Tip="{Binding}"
+                                               FontFamily="Cascadia Code, Consolas, DejaVu Sans Mono, monospace" />
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <TextBlock Text="没有失效记录：索引与磁盘上的文件一致。"
+                           FontSize="12"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding HasNoRecords}"
+                           Foreground="{DynamicResource EmptyStateColor}" />
+            </Grid>
+        </Border>
+
+        <!-- ═══ The decision, at the bottom ═══ -->
+        <Border Grid.Row="3"
+                Background="{DynamicResource BackgroundFooterColor}"
+                BorderBrush="{DynamicResource BorderDefaultColor}"
+                BorderThickness="0,1,0,0"
+                Padding="0,12,0,0"
+                Margin="0,12,0,0">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0"
+                           FontSize="11"
+                           TextWrapping="Wrap"
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,0"
+                           Foreground="{DynamicResource TextMutedColor}"
+                           Text="清理只删除索引记录与它们关联的标签，磁盘上的文件不会被改动；点击后还会再确认一次。" />
+
+                <Button Grid.Column="1"
+                        Classes="danger"
+                        Content="{Binding CleanButtonText}"
+                        Command="{Binding CleanCommand}"
+                        IsEnabled="{Binding HasRecords}" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

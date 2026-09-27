@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using KBManager.core;
+using KBManager.GUI.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -18,7 +19,9 @@ namespace KBManager.GUI.ViewModels;
 public partial class SearchViewModel : ViewModelBase
 {
     private readonly IKnowledgeBaseService _kbService;
+    private readonly IFileContentService _fileContentService;
     private readonly GitHelper _gitHelper;
+    private readonly IDialogService _dialogService;
 
     /// <summary>Set by the shell during composition.</summary>
     public IWorkspaceShell? Shell { get; set; }
@@ -32,10 +35,16 @@ public partial class SearchViewModel : ViewModelBase
     /// </summary>
     private bool _suppressSuggestionFilter;
 
-    public SearchViewModel(IKnowledgeBaseService kbService, GitHelper gitHelper)
+    public SearchViewModel(
+        IKnowledgeBaseService kbService,
+        IFileContentService fileContentService,
+        GitHelper gitHelper,
+        IDialogService dialogService)
     {
         _kbService = kbService;
+        _fileContentService = fileContentService;
         _gitHelper = gitHelper;
+        _dialogService = dialogService;
     }
 
     // ── Query ──────────────────────────────────────────────────────────────
@@ -170,19 +179,33 @@ public partial class SearchViewModel : ViewModelBase
             if (result.Success && result.Data != null)
             {
                 foreach (var entry in result.Data)
-                    Results.Add(FileSearchResultItem.From(entry));
+                {
+                    var item = FileSearchResultItem.From(entry);
+
+                    // The index can outlive the file: flag those rows instead of
+                    // hiding them, and let the user decide what to do about them.
+                    item.ExistsOnDisk = _fileContentService.Exists(repository, item.RelativePath);
+                    Results.Add(item);
+                }
             }
 
+            int missing = Results.Count(r => r.IsMissing);
             HasSearched = true;
-            ResultSummary = Results.Count > 0
-                ? $"标签「{tagName}」匹配 {Results.Count} 个文件"
-                : $"没有文件使用标签「{tagName}」";
+            ResultSummary = Results.Count == 0
+                ? $"没有文件使用标签「{tagName}」"
+                : missing == 0
+                    ? $"标签「{tagName}」匹配 {Results.Count} 个文件"
+                    : $"标签「{tagName}」匹配 {Results.Count} 个文件，其中 {missing} 个在磁盘上已不存在";
             ClearBusy(ResultSummary);
+
+            if (missing > 0)
+                AppLog.Warn($"检索「{tagName}」：{missing} 条索引记录在磁盘上不存在");
         }
         catch (Exception ex)
         {
             ClearBusy();
             StatusMessage = $"检索失败: {ex.Message}";
+            AppLog.Error("检索异常", ex);
         }
     }
 
@@ -191,7 +214,47 @@ public partial class SearchViewModel : ViewModelBase
     private async Task OpenResultAsync(FileSearchResultItem? item)
     {
         if (item == null || Shell == null) return;
+        if (item.IsMissing)
+        {
+            StatusMessage = $"{item.DisplayName} 在磁盘上已不存在，请先清理失效记录";
+            return;
+        }
+
         await Shell.OpenFileAsync(item.RelativePath);
+    }
+
+    /// <summary>
+    /// Drop a stale index record (and its tag links) for a file that is no longer
+    /// on disk, then refresh the result list.
+    /// </summary>
+    [RelayCommand]
+    private async Task RemoveStaleRecordAsync(FileSearchResultItem? item)
+    {
+        if (item == null) return;
+
+        var repository = _gitHelper.ReadGitConfig().RepositoryDirectory;
+        if (string.IsNullOrWhiteSpace(repository)) return;
+
+        var confirmed = await _dialogService.ConfirmAsync(
+            "清理失效记录",
+            $"\"{item.RelativePath}\" 在磁盘上已不存在。\n\n" +
+            "将移除它在索引中的记录以及对应标签，磁盘文件不受影响。确定继续吗？");
+        if (!confirmed) return;
+
+        var result = await _kbService.DeleteFileAsync(repository, item.RelativePath);
+        if (!result.Success)
+        {
+            AppLog.Warn($"清理失效记录失败：{item.RelativePath} — {result.Message}");
+            StatusMessage = result.Message;
+            return;
+        }
+
+        AppLog.Info($"已清理失效记录：{item.RelativePath}");
+        StatusMessage = $"已清理失效记录: {item.RelativePath}";
+
+        // Re-run so the row disappears and the counts stay truthful.
+        await SearchAsync();
+        if (Shell != null) await Shell.RefreshIndexAsync(rebuildTree: true);
     }
 
     [RelayCommand]

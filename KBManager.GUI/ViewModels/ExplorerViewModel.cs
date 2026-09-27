@@ -28,6 +28,9 @@ public interface IWorkspaceShell
     /// <summary>Re-read the index; optionally rebuild the explorer tree.</summary>
     Task RefreshIndexAsync(bool rebuildTree);
 
+    /// <summary>Open (or focus) the stale-record cleanup page in the editor area.</summary>
+    Task OpenStaleRecordsAsync();
+
     /// <summary>Publish a message to the workspace status bar.</summary>
     void ReportStatus(string message);
 }
@@ -94,6 +97,26 @@ public partial class ExplorerViewModel : ViewModelBase
     [ObservableProperty]
     private string _fileSummary = "共 0 个文件";
 
+    /// <summary>Markdown files actually present on disk (the status bar uses this).</summary>
+    [ObservableProperty]
+    private int _totalFileCount;
+
+    /// <summary>Index records whose file no longer exists on disk.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStaleIndexRecords))]
+    [NotifyPropertyChangedFor(nameof(StaleSummary))]
+    private int _staleIndexCount;
+
+    /// <summary>Whether to surface the "stale records" hint at all.</summary>
+    public bool HasStaleIndexRecords => StaleIndexCount > 0;
+
+    /// <summary>
+    /// One line only: the full list lives on its own page in the editor area
+    /// (opened by the button next to this text), so a long list can never crowd
+    /// out the file tree.
+    /// </summary>
+    public string StaleSummary => $"索引里有 {StaleIndexCount} 条记录，其文件已不在磁盘上";
+
     [ObservableProperty]
     private bool _isRepositoryConfigured;
 
@@ -109,16 +132,18 @@ public partial class ExplorerViewModel : ViewModelBase
             FileSummary = "未配置仓库";
             StatusMessage = "请先在设置中配置仓库目录";
             FileTree = new ObservableCollection<FileTreeNode>();
+            TotalFileCount = 0;
+            StaleIndexCount = 0;
             AppLog.Warn("资源管理器：尚未配置仓库目录");
             return;
         }
 
         IsRepositoryConfigured = true;
-        SetBusy("正在加载文件列表…");
+        SetBusy("正在读取仓库目录…");
         try
         {
-            // First run against a configured repository: build the index instead of
-            // showing an empty explorer the user cannot act on.
+            // First run against a configured repository: build the index so tagging
+            // works, instead of showing an explorer the user cannot act on.
             if (!_kbService.DatabaseExists(repository))
             {
                 AppLog.Info("索引不存在，自动创建并执行首次扫描");
@@ -130,19 +155,43 @@ public partial class ExplorerViewModel : ViewModelBase
                 AppLog.Info($"首次扫描：{firstScan.Message}");
             }
 
-            var result = await _kbService.ListFilesWithTagsAsync(repository);
-            _fileEntries = result.Success && result.Data != null
-                ? result.Data.Where(f => IsMarkdown(f.FileName)).ToList()
-                : new List<FileEntryDto>();
+            // The tree reflects the real directory; the index only contributes tags.
+            // Scanning is blocking I/O, so keep it off the UI thread.
+            var scan = await Task.Run(() => _fileScanService.ScanRepositoryFiles(repository));
+            var diskFiles = scan.Success && scan.Data != null ? scan.Data : new List<string>();
+            if (!scan.Success)
+                AppLog.Warn($"资源管理器：扫描仓库失败 — {scan.Message}");
 
-            if (!result.Success)
-                AppLog.Warn($"资源管理器：读取索引失败 — {result.Message}");
+            var index = await _kbService.ListFilesWithTagsAsync(repository);
+            var indexEntries = index.Success && index.Data != null ? index.Data : new List<FileEntryDto>();
+            if (!index.Success)
+                AppLog.Warn($"资源管理器：读取索引失败 — {index.Message}");
 
+            var tagsByPath = BuildTagMap(indexEntries);
+
+            // Records with no file on disk are surfaced for the user to resolve and
+            // are never rendered as if they were real files.
+            var stale = await _kbService.FindStaleRecordsAsync(repository, diskFiles);
+            var staleList = stale.Success && stale.Data != null ? stale.Data : new List<string>();
+            StaleIndexCount = staleList.Count;
+            if (StaleIndexCount > 0)
+                AppLog.Warn($"索引中有 {StaleIndexCount} 条记录在磁盘上不存在：{string.Join(", ", staleList)}");
+
+            _fileEntries = diskFiles
+                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                .Select(f => new FileEntryDto
+                {
+                    FileName = f,
+                    Tags = tagsByPath.TryGetValue(f, out var tags) ? tags : new List<string>()
+                })
+                .ToList();
+
+            TotalFileCount = _fileEntries.Count;
             BuildFileTree();
             FileSummary = _fileEntries.Count == 0
-                ? "索引中没有 Markdown 文件"
+                ? "仓库中没有 Markdown 文件"
                 : $"共 {_fileEntries.Count} 个文件";
-            ClearBusy(result.Success ? FileSummary : result.Message);
+            ClearBusy(FileSummary);
         }
         catch (Exception ex)
         {
@@ -161,15 +210,40 @@ public partial class ExplorerViewModel : ViewModelBase
         var result = await _kbService.ListFilesWithTagsAsync(repository);
         if (!result.Success || result.Data == null) return;
 
-        _fileEntries = result.Data.Where(f => IsMarkdown(f.FileName)).ToList();
-        var byPath = _fileEntries.ToDictionary(f => f.FileName, StringComparer.OrdinalIgnoreCase);
+        var tagsByPath = BuildTagMap(result.Data);
 
         foreach (var node in FlattenTree(FileTree))
         {
             if (node.FullPath == null || !node.IsFile) continue;
-            if (byPath.TryGetValue(node.FullPath, out var entry))
-                node.SetTags(entry.Tags);
+            node.SetTags(tagsByPath.TryGetValue(node.FullPath, out var tags)
+                ? tags
+                : new List<string>());
         }
+
+        // The files on disk have not moved, so only the stale set needs recomputing.
+        var stale = await _kbService.FindStaleRecordsAsync(
+            repository, _fileEntries.Select(e => e.FileName).ToList());
+        StaleIndexCount = stale.Success && stale.Data != null ? stale.Data.Count : 0;
+    }
+
+    /// <summary>
+    /// Open the cleanup page in the editor area. The sidebar only holds the count:
+    /// a long list of stale paths belongs on its own page, not squeezed in here.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenStaleRecordsAsync()
+    {
+        if (Shell == null) return;
+        await Shell.OpenStaleRecordsAsync();
+    }
+
+    /// <summary>Path → tags lookup that tolerates duplicate rows instead of throwing.</summary>
+    private static Dictionary<string, List<string>> BuildTagMap(IEnumerable<FileEntryDto> entries)
+    {
+        var map = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in entries)
+            map[entry.FileName] = entry.Tags;
+        return map;
     }
 
     private void BuildFileTree()
@@ -295,9 +369,6 @@ public partial class ExplorerViewModel : ViewModelBase
         }
     }
 
-    private static bool IsMarkdown(string fileName) =>
-        MarkdownExtensions.Contains(System.IO.Path.GetExtension(fileName));
-
     /// <summary>
     /// Give a node its row actions. Context menus live in a popup and cannot bind
     /// back to this ViewModel, so the node carries the commands itself.
@@ -306,6 +377,7 @@ public partial class ExplorerViewModel : ViewModelBase
     {
         node.ActivateRequested = n => _ = ActivateNodeAsync(n);
         node.OpenExternallyRequested = n => _ = OpenNodeExternallyAsync(n);
+        node.OpenContainingFolderRequested = n => _ = OpenContainingFolderAsync(n);
         node.RenameRequested = n => _ = RenameNodeAsync(n);
         node.DeleteRequested = n => _ = DeleteNodeAsync(n);
     }
@@ -361,6 +433,26 @@ public partial class ExplorerViewModel : ViewModelBase
         await _fileOpener.OpenFileAsync(resolved.Data);
         StatusMessage = $"已用外部程序打开: {node.Name}";
         AppLog.Info($"外部打开：{resolved.Data}");
+    }
+
+    /// <summary>Reveal the file in the OS file manager.</summary>
+    public async Task OpenContainingFolderAsync(FileTreeNode? node)
+    {
+        if (node is not { IsDirectory: false, FullPath: not null }) return;
+
+        var repository = _gitHelper.ReadGitConfig().RepositoryDirectory;
+        if (string.IsNullOrWhiteSpace(repository)) return;
+
+        var resolved = _fileContentService.ResolveFullPath(repository, node.FullPath);
+        if (!resolved.Success || resolved.Data == null)
+        {
+            StatusMessage = resolved.Message;
+            return;
+        }
+
+        await _fileOpener.OpenContainingFolderAsync(resolved.Data);
+        StatusMessage = $"已在文件管理器中定位: {node.Name}";
+        AppLog.Info($"打开所在目录：{resolved.Data}");
     }
 
     [RelayCommand]

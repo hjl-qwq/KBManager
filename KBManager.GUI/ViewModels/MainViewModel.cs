@@ -205,15 +205,16 @@ public partial class MainViewModel : ViewModelBase, IWorkspaceShell
 
         try
         {
-            var files = await _kbService.ListFilesWithTagsAsync(repository);
-            FileCount = files.Success && files.Data != null ? files.Data.Count : 0;
+            // The file count shown to the user must match the explorer, which is
+            // driven by the real directory rather than by the index.
+            FileCount = Explorer.TotalFileCount;
 
             var tags = await _kbService.GetTagsWithFileCountAsync(repository);
             TagCount = tags.Success && tags.Data != null ? tags.Data.Count : 0;
         }
         catch
         {
-            FileCount = 0;
+            FileCount = Explorer.TotalFileCount;
             TagCount = 0;
         }
     }
@@ -276,6 +277,28 @@ public partial class MainViewModel : ViewModelBase, IWorkspaceShell
 
         var log = _services.GetRequiredService<LogViewModel>();
         AddDocument(new ToolDocumentViewModel("日志", log));
+    }
+
+    /// <summary>
+    /// Open the stale-record cleanup page as a document tab. A full list belongs in
+    /// the editor area, not squeezed into the explorer sidebar.
+    /// </summary>
+    [RelayCommand]
+    public async Task OpenStaleRecordsAsync()
+    {
+        var existing = Documents.FirstOrDefault(d => d is ToolDocumentViewModel { Page: StaleRecordsViewModel });
+        if (existing is ToolDocumentViewModel { Page: StaleRecordsViewModel staleVm })
+        {
+            Activate(existing);
+            await staleVm.LoadAsync();      // always show the current state
+            return;
+        }
+
+        var page = _services.GetRequiredService<StaleRecordsViewModel>();
+        page.IndexChanged = () => RefreshIndexAsync(rebuildTree: true);
+
+        await page.LoadAsync();
+        AddDocument(new ToolDocumentViewModel("清理失效记录", page));
     }
 
     // ── Document management ────────────────────────────────────────────────

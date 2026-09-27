@@ -94,6 +94,46 @@
         <Style Selector="ScrollBar Thumb">
             <Setter Property="Background" Value="{DynamicResource ScrollBarThumbColor}" />
         </Style>
+        <!--
+            滚动条：不用时隐藏，悬停时也只保持细条，不"变胖"。
+            Fluent 默认在 [IsExpanded=true] 时把整条轨道（TrackRect）显示出来、把滑块换成
+            大号渲染变换、并点亮翻页按钮；那条突然变粗的轨道会盖住最后一行内容并抢走点击。
+            这里把轨道与按钮压回不可见，并让滑块在所有状态下都用同一个细条变换。
+            变换写成字面量而不是引用主题内部的缩放资源：那些键不在任何可查的主题文件里，
+            引用一个不存在的键只会静默失效（滑块又变粗），不如自带。
+            模板里已给出 RenderTransformOrigin（竖条 100%,50%、横条 50%,100%），
+            所以缩放会自然贴着右边缘 / 下边缘收缩。
+        -->
+        <Style Selector="ScrollBar[IsExpanded=true] /template/ Rectangle#TrackRect">
+            <Setter Property="Opacity" Value="0" />
+        </Style>
+        <Style Selector="ScrollBar[IsExpanded=true] /template/ RepeatButton">
+            <Setter Property="Opacity" Value="0" />
+        </Style>
+        <Style Selector="ScrollBar:vertical /template/ Thumb">
+            <Setter Property="RenderTransform" Value="scale(0.3,1)" />
+        </Style>
+        <Style Selector="ScrollBar:horizontal /template/ Thumb">
+            <Setter Property="RenderTransform" Value="scale(1,0.3)" />
+        </Style>
+        <!--
+            两端各有一个默认不可见（Opacity=0）的翻页箭头：竖条是 PART_LineUpButton /
+            PART_LineDownButton，横条复用同名部件。它们虽然看不见，却各自占据一个
+            ScrollBarSize 的 Auto 行/列，导致滑块永远到不了真正的两端——看起来就是"上下边界不对"。
+            把这两个部件从布局里移除，Track 便可占满整条，滑块行程与实际内容范围一致，
+            两端也不会再抢点击。轨道内的翻页按钮保持原样，所以点击空白处翻页仍然可用。
+        -->
+        <Style Selector="ScrollBar /template/ RepeatButton#PART_LineUpButton">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="ScrollBar /template/ RepeatButton#PART_LineDownButton">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!-- 横竖滚动条交汇处的小方块：主题在 [IsExpanded=true] 时会点亮它，
+             这里必须用同样带属性选择器的规则才能压住。 -->
+        <Style Selector="ScrollViewer[IsExpanded=true] /template/ Panel#PART_ScrollBarsSeparator">
+            <Setter Property="Opacity" Value="0" />
+        </Style>
 
         <!-- ScrollViewer -->
         <Style Selector="ScrollViewer">
@@ -365,14 +405,17 @@
             <Setter Property="CornerRadius" Value="9" />
             <Setter Property="Padding" Value="7,2" />
         </Style>
-        <!-- 悬浮标签预览：轻薄、圆角、柔和的投影，避免“一大块”的突兀感 -->
-        <Style Selector="Border.popup">
+        <!--
+            悬浮标签预览：只保留 ToolTip 自身这一层外观。
+            之前是在 ToolTip 里再套一个 Border，于是叠出了"两层框"（浅灰的外层 + 自己画的内层）。
+            现在直接给 ToolTip 上色，内容区不再自带边框，视觉上就是干净的一层。
+        -->
+        <Style Selector="ToolTip">
             <Setter Property="Background" Value="{DynamicResource PopupBackgroundColor}" />
             <Setter Property="BorderBrush" Value="{DynamicResource PopupBorderColor}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="9,7" />
-            <Setter Property="BoxShadow" Value="0 2 10 0 #26000000" />
         </Style>
 
         <!-- GridSplitter -->

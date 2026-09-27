@@ -35,6 +35,19 @@ namespace KBManager.core
         /// tags. Any stale record already at the destination is folded in.
         /// </summary>
         Task<ServiceResult> RenameFileAsync(string repositoryDirectory, string oldFileName, string newFileName);
+
+        /// <summary>
+        /// Reconcile the index against the real directory: return the index records
+        /// whose file is absent from <paramref name="filesOnDisk"/>.
+        ///
+        /// The caller supplies the on-disk file list so a single scan can serve both
+        /// the tree and this comparison. Keeps the "what counts as stale" rule in one
+        /// place instead of scattering it across callers.
+        /// </summary>
+        Task<ServiceResult<List<string>>> FindStaleRecordsAsync(
+            string repositoryDirectory,
+            IReadOnlyCollection<string> filesOnDisk);
+
         Task<ServiceResult<List<TagEntryDto>>> ListAllTagsAsync(string repositoryDirectory);
         Task<ServiceResult<List<TagWithCountDto>>> GetTagsWithFileCountAsync(string repositoryDirectory);
         Task<ServiceResult<FileEntryDto?>> GetFileWithTagsAsync(string repositoryDirectory, string fileName);

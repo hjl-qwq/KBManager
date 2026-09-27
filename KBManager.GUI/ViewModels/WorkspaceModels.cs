@@ -44,6 +44,18 @@ public partial class FileSearchResultItem : ObservableObject
 
     public bool HasDirectoryLabel => !string.IsNullOrEmpty(DirectoryLabel);
 
+    /// <summary>
+    /// False when the index has a record for this file but the file is gone from
+    /// disk. Such rows are still listed (the tag genuinely points at them) but the
+    /// user is told, and offered a way to drop the stale record.
+    /// </summary>
+    public bool ExistsOnDisk { get; set; } = true;
+
+    /// <summary>True for a stale index record — the row is flagged and not openable.</summary>
+    public bool IsMissing => !ExistsOnDisk;
+
+    public string MissingHint => "磁盘上已不存在（索引记录失效）";
+
     /// <summary>Build a result row from an index entry.</summary>
     public static FileSearchResultItem From(FileEntryDto entry)
     {

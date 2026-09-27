@@ -70,6 +70,9 @@ public partial class FileTreeNode : ObservableObject
 
     public Action<FileTreeNode>? OpenExternallyRequested { get; set; }
 
+    /// <summary>Reveal this file in the OS file manager.</summary>
+    public Action<FileTreeNode>? OpenContainingFolderRequested { get; set; }
+
     public Action<FileTreeNode>? RenameRequested { get; set; }
 
     public Action<FileTreeNode>? DeleteRequested { get; set; }
@@ -79,6 +82,9 @@ public partial class FileTreeNode : ObservableObject
 
     [RelayCommand]
     private void OpenExternally() => OpenExternallyRequested?.Invoke(this);
+
+    [RelayCommand]
+    private void OpenContainingFolder() => OpenContainingFolderRequested?.Invoke(this);
 
     [RelayCommand]
     private void Rename() => RenameRequested?.Invoke(this);

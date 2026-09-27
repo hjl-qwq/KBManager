@@ -29,6 +29,41 @@ namespace KBManager.Tests
         }
 
         [Fact]
+        public async Task FindStaleRecords_Returns_Index_Entries_Missing_From_Disk()
+        {
+            await _service.AddTagToFileAsync(_repo, "keep.md", "t");
+            await _service.AddTagToFileAsync(_repo, "gone.md", "t");
+            await _service.AddTagToFileAsync(_repo, "sub/deep.md", "t");
+
+            // Disk now only has two of the three indexed paths.
+            var onDisk = new[] { "keep.md", "sub/deep.md" };
+
+            var stale = await _service.FindStaleRecordsAsync(_repo, onDisk);
+            Assert.True(stale.Success);
+            Assert.Equal(new[] { "gone.md" }, stale.Data!.ToArray());
+        }
+
+        [Fact]
+        public async Task FindStaleRecords_Handles_Missing_Database_And_Empty_Disk()
+        {
+            // No index yet: nothing can be stale.
+            var beforeIndex = await _service.FindStaleRecordsAsync(_repo, Array.Empty<string>());
+            Assert.True(beforeIndex.Success);
+            Assert.Empty(beforeIndex.Data!);
+
+            await _service.AddTagToFileAsync(_repo, "a.md", "t");
+
+            // Index exists but disk is empty: the record is stale.
+            var stale = await _service.FindStaleRecordsAsync(_repo, Array.Empty<string>());
+            Assert.True(stale.Success);
+            Assert.Equal(new[] { "a.md" }, stale.Data!.ToArray());
+
+            // Path comparison is case-insensitive, matching the index normalisation.
+            var upper = await _service.FindStaleRecordsAsync(_repo, new[] { "A.MD" });
+            Assert.Empty(upper.Data!);
+        }
+
+        [Fact]
         public async Task DatabaseExists_Reflects_Whether_Index_Was_Created()
         {
             // Lets the explorer decide to bootstrap a fresh repository.
