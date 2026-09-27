@@ -42,15 +42,11 @@ public class ThemeConfig
     public string BackgroundSelectedColor { get; set; } = "#E3F2FD";
     public string BackgroundNavPressedColor { get; set; } = "#D0D0D0";
     public string BackgroundInputColor { get; set; } = "#FFFFFF";
-    /// <summary>资源管理器右侧的计数栏；半透明的主色，好让选中 / 悬停底色透出来。</summary>
-    public string BackgroundCountColumnColor { get; set; } = "#141565C0";
 
     // ── 边框色 ──
     public string BorderDefaultColor { get; set; } = "#E0E0E0";
     public string BorderInputColor { get; set; } = "#D0D0D0";
     public string BorderFocusColor { get; set; } = "#0078D4";
-    /// <summary>计数栏与文件名之间的细线；同色系，比计数栏底色深一点。</summary>
-    public string BorderCountColumnColor { get; set; } = "#3D1565C0";
 
     // ── 光标 / 特殊 ──
     public string CaretColor { get; set; } = "#333333";
@@ -134,11 +130,9 @@ public class ThemeConfig
             ["BackgroundSelectedColor"] = BackgroundSelectedColor,
             ["BackgroundNavPressedColor"] = BackgroundNavPressedColor,
             ["BackgroundInputColor"] = BackgroundInputColor,
-            ["BackgroundCountColumnColor"] = BackgroundCountColumnColor,
             ["BorderDefaultColor"] = BorderDefaultColor,
             ["BorderInputColor"] = BorderInputColor,
             ["BorderFocusColor"] = BorderFocusColor,
-            ["BorderCountColumnColor"] = BorderCountColumnColor,
             ["CaretColor"] = CaretColor,
             ["WatermarkColor"] = WatermarkColor,
             ["ScrollBarThumbColor"] = ScrollBarThumbColor,
