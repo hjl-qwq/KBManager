@@ -52,6 +52,7 @@
                   Name="FileTreeView"
                   Padding="0,0,0,4"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                  AutoScrollToSelectedItem="True"
                   ItemsSource="{Binding FileTree}"
                   SelectedItem="{Binding SelectedNode, Mode=TwoWay}">
             <TreeView.ItemTemplate>
@@ -223,7 +224,7 @@
             <TextBlock FontSize="10.5"
                        TextWrapping="Wrap"
                        Foreground="{DynamicResource TextMutedColor}"
-                       Text="双击打开 · 右键更多操作 · 悬浮 1 秒预览标签" />
+                       Text="单击预览 · 双击打开 · 右键更多操作 · 悬浮 1 秒预览标签" />
             <TextBlock FontSize="10.5"
                        TextWrapping="Wrap"
                        Foreground="{DynamicResource TextMutedColor}"

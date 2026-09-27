@@ -60,11 +60,17 @@
             <Setter Property="CornerRadius" Value="0" />
             <Setter Property="AcceptsReturn" Value="True" />
             <Setter Property="AcceptsTab" Value="True" />
-            <Setter Property="TextWrapping" Value="NoWrap" />
+            <!--
+                文档编辑器：软换行。
+                TextWrapping 只影响排版，不改缓冲区内容，所以磁盘上的文件不会出现硬换行；
+                长段落折行显示，读者不必横向拖动。因为换行后内容永远不会超出视口宽度，
+                外层 ScrollViewer 的水平滚动被关闭，行号栏也就永远停在左边。
+            -->
+            <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="VerticalContentAlignment" Value="Top" />
             <Setter Property="MinHeight" Value="0" />
             <!-- Inner scrolling disabled so the TextBox grows inside the outer
-                 ScrollViewer and the line-number gutter stays aligned. -->
+                 ScrollViewer, which scrolls the text and the gutter together. -->
             <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
         </Style>
@@ -290,15 +296,34 @@
             <Setter Property="Background" Value="{DynamicResource ActivityBarActiveBackgroundColor}" />
         </Style>
 
-        <!-- ===== 按钮：文档标签页 ===== -->
-        <Style Selector="Button.tab">
+        <!-- ===== 文档标签页 =====
+             整块标签是一个 Border：背景与选中高亮都画在它身上，因此高亮覆盖整块，
+             包括关闭按钮那一段。里面并排放着"标题按钮"和"关闭按钮"，两者左右紧贴、
+             占满整块标签，于是整块既全部高亮、也全部可点击。
+             宽度固定（等宽），过长的文件名交给 TextBlock.tabtitle 里的省略号。 -->
+        <Style Selector="Border.tabitem">
             <Setter Property="Background" Value="{DynamicResource TabInactiveBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TabBorderColor}" />
+            <Setter Property="BorderThickness" Value="0,0,1,0" />
+            <Setter Property="Width" Value="170" />
+            <Setter Property="Height" Value="26" />
+        </Style>
+        <Style Selector="Border.tabitem.active">
+            <Setter Property="Background" Value="{DynamicResource TabActiveBackgroundColor}" />
+        </Style>
+
+        <Style Selector="Button.tab">
+            <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{DynamicResource TabInactiveForegroundColor}" />
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Padding" Value="7,0" />
+            <Setter Property="MinHeight" Value="0" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="CornerRadius" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.tab /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
@@ -308,13 +333,24 @@
         <Style Selector="Button.tab:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource TabHoverBackgroundColor}" />
         </Style>
-        <!-- .active 放在 hover 之后，保证选中态优先 -->
-        <Style Selector="Button.tab.active">
-            <Setter Property="Background" Value="{DynamicResource TabActiveBackgroundColor}" />
-            <Setter Property="Foreground" Value="{DynamicResource TabActiveForegroundColor}" />
-        </Style>
+        <!-- 选中标签不因为悬停而变暗：.active 必须排在 :pointerover 之后 -->
         <Style Selector="Button.tab.active /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource TabActiveBackgroundColor}" />
+        </Style>
+
+        <!-- 标签标题：固定宽度里尾部省略；预览态（单击打开）显示为斜体。
+             这条必须排在文件开头的 TextBlock 全局样式之后，才能覆盖它的默认前景色。 -->
+        <Style Selector="TextBlock.tabtitle">
+            <Setter Property="Foreground" Value="{DynamicResource TabInactiveForegroundColor}" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style Selector="TextBlock.tabtitle.active">
+            <Setter Property="Foreground" Value="{DynamicResource TabActiveForegroundColor}" />
+        </Style>
+        <Style Selector="TextBlock.tabtitle.preview">
+            <Setter Property="FontStyle" Value="Italic" />
         </Style>
 
         <!-- ===== 按钮：关闭标签 / 移除芯片 ===== -->

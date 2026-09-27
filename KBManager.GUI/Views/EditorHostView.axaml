@@ -6,7 +6,12 @@
              x:DataType="vm:MainViewModel">
     <Grid RowDefinitions="Auto,*">
 
-        <!-- ═══ Document tab strip ═══ -->
+        <!-- ═══ Document tab strip ═══
+             One fixed width per tab, so the strip stays a steady grid of equal tabs and
+             a long file name is trimmed instead of pushing its neighbours around. The
+             highlight lives on the whole tab (see Border.tabitem), and the label and the
+             close button together cover every pixel of it, so the tab is one target:
+             click anywhere to activate, click the ✕ to close. -->
         <Border Grid.Row="0" Classes="tabstrip" IsVisible="{Binding HasDocuments}">
             <ScrollViewer HorizontalScrollBarVisibility="Auto"
                           VerticalScrollBarVisibility="Disabled">
@@ -18,35 +23,67 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="vm:DocumentViewModel">
-                            <Border BorderBrush="{DynamicResource TabBorderColor}"
-                                    BorderThickness="0,0,1,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <!-- Tab label: click to activate -->
-                                    <Button Classes="tab"
+                            <Border Classes="tabitem"
+                                    Classes.active="{Binding IsActive}"
+                                    ToolTip.ShowDelay="500"
+                                    ToolTip.Placement="Bottom">
+                                <!-- Full name on hover, in the smallest box that still
+                                     fits it: the file name, plus the folder when the
+                                     path says more than the name does. -->
+                                <ToolTip.Tip>
+                                    <StackPanel MaxWidth="260" Spacing="1">
+                                        <TextBlock Text="{Binding Title}"
+                                                   FontSize="11"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding LocationLabel}"
+                                                   FontSize="10"
+                                                   TextWrapping="Wrap"
+                                                   IsVisible="{Binding HasLocationDetail}"
+                                                   Foreground="{DynamicResource TextMutedColor}" />
+                                    </StackPanel>
+                                </ToolTip.Tip>
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <!-- Tab label: click to activate. Italic while the tab
+                                         is only a preview (single click in the explorer). -->
+                                    <Button Grid.Column="0"
+                                            Classes="tab"
                                             Classes.active="{Binding IsActive}"
-                                            Command="{Binding ActivateCommand}"
-                                            ToolTip.Tip="{Binding LocationLabel}">
-                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <!-- Unsaved marker -->
-                                            <TextBlock Text="●"
-                                                       FontSize="11"
+                                            Command="{Binding ActivateCommand}">
+                                        <!-- Grid, not StackPanel: the title column gets a
+                                             real width, which is what lets the ellipsis kick
+                                             in instead of overflowing the tab. -->
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <TextBlock Grid.Column="0"
+                                                       Text="●"
+                                                       FontSize="10"
+                                                       Margin="0,0,5,0"
                                                        VerticalAlignment="Center"
                                                        Foreground="{DynamicResource TabDirtyIndicatorColor}"
                                                        IsVisible="{Binding IsDirty}" />
-                                            <TextBlock Text="{Binding Title}"
-                                                       FontSize="12"
-                                                       VerticalAlignment="Center" />
-                                        </StackPanel>
+                                            <TextBlock Grid.Column="1"
+                                                       Classes="tabtitle"
+                                                       Classes.active="{Binding IsActive}"
+                                                       Classes.preview="{Binding IsPreview}"
+                                                       Text="{Binding Title}" />
+                                        </Grid>
                                     </Button>
 
-                                    <!-- Close -->
-                                    <Button Classes="tabclose"
+                                    <!-- Close: no margin at all, so the right edge of the
+                                         tab belongs to this button rather than to nothing. -->
+                                    <Button Grid.Column="1"
+                                            Classes="tabclose"
                                             Content="✕"
-                                            Margin="0,0,6,0"
-                                            VerticalAlignment="Center"
+                                            Width="22"
+                                            Height="26"
+                                            FontSize="10"
+                                            CornerRadius="0"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"
                                             Command="{Binding CloseCommand}"
                                             ToolTip.Tip="关闭 (Ctrl+W)" />
-                                </StackPanel>
+                                </Grid>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -75,7 +112,7 @@
                            FontSize="16"
                            HorizontalAlignment="Center"
                            Foreground="{DynamicResource EmptyStateColor}" />
-                <TextBlock Text="在左侧「文件」中双击一篇笔记，或用「检索」按标签查找"
+                <TextBlock Text="在左侧「文件」中单击预览一篇笔记，双击则固定打开；也可用「检索」按标签查找"
                            FontSize="12"
                            HorizontalAlignment="Center"
                            Foreground="{DynamicResource EmptyStateColor}" />

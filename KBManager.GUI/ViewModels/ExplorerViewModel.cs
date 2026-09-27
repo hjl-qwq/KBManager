@@ -16,8 +16,13 @@ namespace KBManager.GUI.ViewModels;
 /// </summary>
 public interface IWorkspaceShell
 {
-    /// <summary>Open a repository-relative file in the editor area.</summary>
-    Task OpenFileAsync(string relativePath);
+    /// <summary>
+    /// Open a repository-relative file in the editor area. With
+    /// <paramref name="preview"/> the file opens into a provisional tab (a single
+    /// click in the tree), which the next preview replaces; otherwise it is opened
+    /// for real and any provisional tab for it becomes permanent.
+    /// </summary>
+    Task OpenFileAsync(string relativePath, bool preview);
 
     /// <summary>Reflect a rename in any open document and in the status counters.</summary>
     Task OnFileRenamedAsync(string oldRelativePath, string newRelativePath);
@@ -399,10 +404,10 @@ public partial class ExplorerViewModel : ViewModelBase
         StatusMessage = "已折叠全部目录";
     }
 
-    // ── Node commands (toolbar + context menu + double-click) ──────────────
+    // ── Node commands (single/double click + toolbar + context menu) ────────
 
     /// <summary>Open a file, or toggle a directory, exactly like a VS Code tree.</summary>
-    public async Task ActivateNodeAsync(FileTreeNode? node)
+    public async Task ActivateNodeAsync(FileTreeNode? node, bool preview = false)
     {
         if (node == null) return;
 
@@ -413,7 +418,60 @@ public partial class ExplorerViewModel : ViewModelBase
         }
 
         if (node.FullPath == null) return;
-        if (Shell != null) await Shell.OpenFileAsync(node.FullPath);
+        if (Shell != null) await Shell.OpenFileAsync(node.FullPath, preview);
+    }
+
+    /// <summary>
+    /// Select the node for the file the shell just activated, so the explorer always
+    /// shows where the open document sits. Ancestors are expanded first — a selection
+    /// inside a collapsed folder would be invisible, which is the whole complaint this
+    /// answers. Directories the user collapsed on purpose are re-expanded on the way
+    /// to the file, the same way VS Code reveals a file.
+    /// </summary>
+    public void RevealFile(string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath)) return;
+
+        var normalized = relativePath.Replace('\\', '/');
+        var trail = new List<FileTreeNode>();
+        if (!TryFindTrail(FileTree, normalized, trail))
+        {
+            // Filtered out of the tree, or no longer on disk: leave the current
+            // selection alone rather than pointing the user at nothing.
+            return;
+        }
+
+        foreach (var directory in trail.Where(n => n.IsDirectory))
+            directory.IsExpanded = true;
+
+        SelectedNode = trail[^1];
+    }
+
+    /// <summary>
+    /// Find a file node and collect the nodes leading to it (ancestors last added,
+    /// the file itself at the end), so the caller can expand the way down.
+    /// </summary>
+    private static bool TryFindTrail(
+        IEnumerable<FileTreeNode> nodes, string fullPath, List<FileTreeNode> trail)
+    {
+        foreach (var node in nodes)
+        {
+            trail.Add(node);
+
+            if (!node.IsDirectory)
+            {
+                if (string.Equals(node.FullPath, fullPath, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            else if (TryFindTrail(node.Children, fullPath, trail))
+            {
+                return true;
+            }
+
+            trail.RemoveAt(trail.Count - 1);
+        }
+
+        return false;
     }
 
     public async Task OpenNodeExternallyAsync(FileTreeNode? node)
@@ -528,7 +586,7 @@ public partial class ExplorerViewModel : ViewModelBase
         SelectedNode = FlattenTree(FileTree).FirstOrDefault(n => n.FullPath == relativePath);
         StatusMessage = created.Message;
 
-        if (Shell != null) await Shell.OpenFileAsync(relativePath);
+        if (Shell != null) await Shell.OpenFileAsync(relativePath, preview: false);
     }
 
     public async Task RenameNodeAsync(FileTreeNode? node)

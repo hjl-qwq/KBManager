@@ -3,82 +3,37 @@
              xmlns:vm="clr-namespace:KBManager.GUI.ViewModels"
              x:Class="KBManager.GUI.Views.FileEditorView"
              x:DataType="vm:FileDocumentViewModel">
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,*,Auto">
 
-        <!-- ═══ Document toolbar: path, dirty state, actions ═══ -->
-        <Border Grid.Row="0" Classes="toolbar" Padding="12,7">
+        <!-- ═══ Document strip: exactly one row, tags on the left, add-tag on the right ═══
+             The chip list scrolls sideways rather than wrapping, so adding tags can
+             never push the text surface down. -->
+        <Border Grid.Row="0" Classes="toolbar" Padding="10,4">
             <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="{Binding RelativePath}"
-                               FontSize="12"
-                               VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" />
-                    <Border Background="{DynamicResource TabDirtyIndicatorColor}"
-                            CornerRadius="3"
-                            Padding="6,1"
-                            VerticalAlignment="Center"
-                            IsVisible="{Binding IsDirty}">
-                        <TextBlock Text="未保存"
-                                   FontSize="10"
-                                   Foreground="{DynamicResource PrimaryForegroundColor}" />
-                    </Border>
-                    <Border Background="{DynamicResource BackgroundChipColor}"
-                            CornerRadius="3"
-                            Padding="6,1"
-                            VerticalAlignment="Center"
-                            IsVisible="{Binding HasDecodingWarning}">
-                        <TextBlock Text="编码警告"
-                                   FontSize="10"
-                                   Foreground="{DynamicResource TextDangerColor}" />
-                    </Border>
-                </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                    <Button Classes="primary"
-                            Content="保存"
-                            Padding="14,5"
-                            Command="{Binding SaveCommand}"
-                            IsEnabled="{Binding CanSave}"
-                            ToolTip.Tip="保存到磁盘 (Ctrl+S)" />
-                    <Button Classes="toolbar"
-                            Content="重新加载"
-                            Command="{Binding ReloadCommand}"
-                            ToolTip.Tip="丢弃缓冲区修改并从磁盘重新读取 (Ctrl+R)" />
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <!-- ═══ Tag strip: the "Manager" half of the workspace ═══ -->
-        <Border Grid.Row="1" Classes="toolbar" Padding="12,8">
-            <StackPanel Spacing="6">
-                <!-- Bounded width for the chip column so the WrapPanel can wrap -->
-                <Grid ColumnDefinitions="Auto,*">
-                    <TextBlock Grid.Column="0"
-                               Text="标签"
-                               FontSize="11"
-                               FontWeight="SemiBold"
-                               Margin="0,0,8,0"
-                               VerticalAlignment="Center"
-                               Foreground="{DynamicResource SidebarSectionHeaderColor}" />
-
-                    <ItemsControl Grid.Column="1" ItemsSource="{Binding Tags}">
+                <ScrollViewer Grid.Column="0"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled"
+                              Margin="0,0,10,0">
+                    <ItemsControl ItemsSource="{Binding Tags}" VerticalAlignment="Center">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel />
+                                <StackPanel Orientation="Horizontal" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:FileTagItem">
-                                <Border Classes="chip" Margin="0,0,4,2">
-                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                <Border Classes="chip" Margin="0,0,5,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="3">
                                         <TextBlock Text="{Binding TagName}"
-                                                   FontSize="11"
+                                                   FontSize="10.5"
                                                    VerticalAlignment="Center"
                                                    Foreground="{DynamicResource TextLinkColor}" />
                                         <Button Classes="tabclose"
                                                 Content="✕"
-                                                Width="14"
-                                                Height="14"
+                                                Width="12"
+                                                Height="12"
+                                                FontSize="9"
                                                 Tag="{Binding}"
                                                 Click="OnRemoveTagClicked"
                                                 ToolTip.Tip="移除此标签" />
@@ -87,85 +42,53 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                </ScrollViewer>
 
-                    <TextBlock Grid.Column="1"
-                               Text="暂无标签，可在下方添加"
-                               FontSize="11"
-                               Margin="2,0,0,0"
-                               VerticalAlignment="Center"
-                               Foreground="{DynamicResource TextMutedColor}"
-                               IsVisible="{Binding !HasTags}" />
-                </Grid>
+                <!-- Empty hint shares the chip cell, so it cannot add a row either -->
+                <TextBlock Grid.Column="0"
+                           Text="暂无标签"
+                           FontSize="11"
+                           Margin="2,0,0,0"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding !HasTags}"
+                           Foreground="{DynamicResource TextMutedColor}" />
 
-                <!-- Add tag + autocomplete -->
-                <Grid ColumnDefinitions="240,Auto,*">
-                    <TextBox Grid.Column="0"
-                             Name="NewTagTextBox"
-                             Classes="input"
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="6"
+                            VerticalAlignment="Center">
+                    <TextBox Name="NewTagTextBox"
+                             Classes="slim"
+                             Width="170"
+                             Height="24"
                              Text="{Binding NewTagName}"
-                             Watermark="输入标签名后回车"
-                             FontSize="12"
-                             Padding="8,5" />
-                    <Button Grid.Column="1"
-                            Classes="toolbar"
+                             Watermark="添加标签…"
+                             ToolTip.Tip="输入标签名后回车添加；输入时会列出已有标签" />
+                    <Button Classes="toolbar"
                             Content="添加"
-                            Margin="6,0,0,0"
-                            Command="{Binding AddTagCommand}" />
-                    <TextBlock Grid.Column="2"
-                               Text="{Binding InfoMessage}"
-                               FontSize="11"
-                               Margin="10,0,0,0"
-                               VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis"
-                               Foreground="{DynamicResource TextMutedColor}" />
-                </Grid>
-
-                <ListBox Name="TagSuggestionListBox"
-                         ItemsSource="{Binding TagSuggestions}"
-                         IsVisible="{Binding HasTagSuggestions}"
-                         MaxHeight="120"
-                         BorderBrush="{DynamicResource BorderDefaultColor}"
-                         BorderThickness="1"
-                         Background="{DynamicResource BackgroundDefaultColor}">
-                    <ListBox.Styles>
-                        <Style Selector="ListBoxItem">
-                            <Setter Property="Padding" Value="8,4" />
-                            <Setter Property="Cursor" Value="Hand" />
-                        </Style>
-                    </ListBox.Styles>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="vm:TagSuggestionItem">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0"
-                                           Text="{Binding TagName}"
-                                           FontSize="12"
-                                           VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1"
-                                           Text="{Binding FileCount, StringFormat='{}{0} 个文件'}"
-                                           FontSize="10.5"
-                                           VerticalAlignment="Center"
-                                           Foreground="{DynamicResource TextMutedColor}" />
-                            </Grid>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </StackPanel>
+                            Height="24"
+                            Command="{Binding AddTagCommand}"
+                            ToolTip.Tip="为这篇笔记添加标签" />
+                </StackPanel>
+            </Grid>
         </Border>
 
-        <!-- ═══ Text surface: gutter + editor inside one scroller ═══
-             The TextBox's own scrolling is disabled (see TextBox.editor), so it
-             grows to its content and this ScrollViewer scrolls the gutter and the
-             text together, keeping line numbers aligned. -->
-        <ScrollViewer Grid.Row="2"
+        <!-- ═══ Text surface: a fixed gutter plus soft-wrapped text ═══
+             Horizontal scrolling is disabled on this scroller, so the content is
+             measured at the viewport width: the text wraps instead of running off to
+             the right, and the line-number gutter can never be scrolled out of view.
+             Soft wrapping is display only — the buffer keeps one logical line per
+             newline, so nothing is written back to disk with hard breaks. -->
+        <ScrollViewer Grid.Row="1"
                       Name="EditorScroll"
                       Background="{DynamicResource EditorBackgroundColor}"
-                      HorizontalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Auto">
-            <Grid ColumnDefinitions="Auto,*"
-                  MinWidth="{Binding #EditorScroll.Viewport.Width}"
-                  MinHeight="240">
+            <Grid ColumnDefinitions="Auto,*">
                 <Border Grid.Column="0" Classes="gutter" MinWidth="52">
-                    <TextBlock Text="{Binding GutterText}"
+                    <!-- Filled by the view from the editor's own text layout, one
+                         number per logical line, blank rows for wrapped continuations. -->
+                    <TextBlock Name="GutterLines"
                                FontFamily="Cascadia Code, Consolas, DejaVu Sans Mono, monospace"
                                FontSize="13"
                                LineHeight="20"
@@ -175,39 +98,120 @@
                 </Border>
 
                 <TextBox Grid.Column="1"
+                         Name="EditorBox"
                          Classes="editor"
                          Text="{Binding Content, Mode=TwoWay}"
-                         CaretIndex="{Binding CaretIndex, Mode=TwoWay}"
-                         MinWidth="400" />
+                         CaretIndex="{Binding CaretIndex, Mode=TwoWay}" />
             </Grid>
         </ScrollViewer>
 
-        <!-- ═══ Per-document status strip ═══ -->
-        <Border Grid.Row="3"
+        <!-- ═══ Tag autocomplete: an overlay, so it never pushes the editor down ═══ -->
+        <ListBox Grid.Row="1"
+                 Name="TagSuggestionListBox"
+                 ItemsSource="{Binding TagSuggestions}"
+                 IsVisible="{Binding HasTagSuggestions}"
+                 HorizontalAlignment="Right"
+                 VerticalAlignment="Top"
+                 Width="190"
+                 MaxHeight="150"
+                 Margin="0,4,56,0"
+                 BorderBrush="{DynamicResource BorderDefaultColor}"
+                 BorderThickness="1"
+                 Background="{DynamicResource BackgroundDefaultColor}">
+            <ListBox.Styles>
+                <Style Selector="ListBoxItem">
+                    <Setter Property="Padding" Value="8,3" />
+                    <Setter Property="Cursor" Value="Hand" />
+                </Style>
+            </ListBox.Styles>
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:TagSuggestionItem">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding TagName}"
+                                   FontSize="11.5"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding FileCount, StringFormat='{}{0} 个文件'}"
+                                   FontSize="10"
+                                   Margin="6,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextMutedColor}" />
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- ═══ Status strip: document metrics on the left, save actions on the right ═══ -->
+        <Border Grid.Row="2"
                 Background="{DynamicResource BackgroundFooterColor}"
                 BorderBrush="{DynamicResource BorderDefaultColor}"
                 BorderThickness="0,1,0,0"
                 Padding="12,4">
-            <StackPanel Orientation="Horizontal" Spacing="14">
-                <TextBlock FontSize="11"
-                           Foreground="{DynamicResource TextMutedColor}"
-                           Text="{Binding CaretLine, StringFormat='行 {0}'}" />
-                <TextBlock FontSize="11"
-                           Foreground="{DynamicResource TextMutedColor}"
-                           Text="{Binding CaretColumn, StringFormat='列 {0}'}" />
-                <TextBlock FontSize="11"
-                           Foreground="{DynamicResource TextMutedColor}"
-                           Text="{Binding LineCount, StringFormat='共 {0} 行'}" />
-                <TextBlock FontSize="11"
-                           Foreground="{DynamicResource TextMutedColor}"
-                           Text="{Binding CharacterCount, StringFormat='{}{0} 字符'}" />
-                <TextBlock FontSize="11"
-                           Foreground="{DynamicResource TextMutedColor}"
-                           Text="{Binding EncodingLabel}" />
-                <TextBlock FontSize="11"
-                           Foreground="{DynamicResource TextMutedColor}"
-                           Text="{Binding LineEndingLabel}" />
-            </StackPanel>
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0"
+                            Orientation="Horizontal"
+                            Spacing="14"
+                            VerticalAlignment="Center"
+                            ClipToBounds="True">
+                    <TextBlock FontSize="11"
+                               Foreground="{DynamicResource TextMutedColor}"
+                               Text="{Binding CaretLine, StringFormat='行 {0}'}" />
+                    <TextBlock FontSize="11"
+                               Foreground="{DynamicResource TextMutedColor}"
+                               Text="{Binding CaretColumn, StringFormat='列 {0}'}" />
+                    <TextBlock FontSize="11"
+                               Foreground="{DynamicResource TextMutedColor}"
+                               Text="{Binding LineCount, StringFormat='共 {0} 行'}" />
+                    <TextBlock FontSize="11"
+                               Foreground="{DynamicResource TextMutedColor}"
+                               Text="{Binding CharacterCount, StringFormat='{}{0} 字符'}" />
+                    <TextBlock FontSize="11"
+                               Foreground="{DynamicResource TextMutedColor}"
+                               Text="{Binding EncodingLabel}" />
+                    <TextBlock FontSize="11"
+                               Foreground="{DynamicResource TextMutedColor}"
+                               Text="{Binding LineEndingLabel}" />
+                    <TextBlock FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TabDirtyIndicatorColor}"
+                               IsVisible="{Binding IsDirty}"
+                               Text="未保存" />
+                    <TextBlock FontSize="11"
+                               Foreground="{DynamicResource TextDangerColor}"
+                               IsVisible="{Binding HasDecodingWarning}"
+                               Text="编码警告：该文件不是有效的 UTF-8" />
+                    <!-- Per-document feedback (save result, tag result, load warning).
+                         It lives here because the tag row above is a single line now. -->
+                    <TextBlock FontSize="11"
+                               MaxWidth="240"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextLinkColor}"
+                               Text="{Binding InfoMessage}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="6"
+                            VerticalAlignment="Center">
+                    <!-- Re-read the file from disk without leaving the tab -->
+                    <Button Classes="toolbar"
+                            Content="重新加载"
+                            Height="22"
+                            Command="{Binding ReloadCommand}"
+                            ToolTip.Tip="丢弃缓冲区修改并从磁盘重新读取 (Ctrl+R)" />
+                    <Button Classes="primary"
+                            Content="保存"
+                            Height="22"
+                            Padding="14,2"
+                            FontSize="11.5"
+                            Command="{Binding SaveCommand}"
+                            IsEnabled="{Binding CanSave}"
+                            ToolTip.Tip="保存到磁盘 (Ctrl+S)" />
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

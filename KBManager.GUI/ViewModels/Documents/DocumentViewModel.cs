@@ -18,6 +18,12 @@ public abstract partial class DocumentViewModel : ObservableObject
     public abstract string LocationLabel { get; }
 
     /// <summary>
+    /// True when <see cref="LocationLabel"/> carries information the title does not
+    /// (a file's folder), so the tab tooltip shows it as a second line.
+    /// </summary>
+    public virtual bool HasLocationDetail => false;
+
+    /// <summary>
     /// Repository-relative path for file documents; empty for tool pages.
     /// </summary>
     public virtual string RelativePath => string.Empty;
@@ -32,6 +38,23 @@ public abstract partial class DocumentViewModel : ObservableObject
     /// <summary>Unsaved changes pending.</summary>
     [ObservableProperty]
     private bool _isDirty;
+
+    /// <summary>
+    /// Opened by a single click in the explorer: a provisional tab shown with an
+    /// italic title. It is replaced by the next preview and stops being provisional
+    /// as soon as the user actually works in it (or opens it with a double click).
+    /// </summary>
+    [ObservableProperty]
+    private bool _isPreview;
+
+    /// <summary>
+    /// Turn a provisional (single-click) tab into a normal one: double-clicking the
+    /// file, editing it, or re-opening it for real all land here.
+    /// </summary>
+    public void PromoteToPermanent()
+    {
+        if (IsPreview) IsPreview = false;
+    }
 
     /// <summary>
     /// Wired by the shell when the document is added, so the tab strip can drive

@@ -127,6 +127,11 @@ public partial class MainViewModel : ViewModelBase, IWorkspaceShell
 
         CloseDocumentCommand.NotifyCanExecuteChanged();
         SaveActiveDocumentCommand.NotifyCanExecuteChanged();
+
+        // Whatever is in front of the user is also marked in the explorer, so an open
+        // tab can always be traced back to its place in the tree.
+        if (value is FileDocumentViewModel file)
+            Explorer.RevealFile(file.RelativePath);
     }
 
     private void RaiseDocumentCollectionChanged()
@@ -389,41 +394,84 @@ public partial class MainViewModel : ViewModelBase, IWorkspaceShell
 
     // ── IWorkspaceShell ────────────────────────────────────────────────────
 
-    public async Task OpenFileAsync(string relativePath)
+    /// <summary>
+    /// Open a file in the editor area.
+    ///
+    /// <paramref name="preview"/> is the single-click behaviour: the file opens into
+    /// one provisional tab (italic title) that the next single click replaces, so
+    /// browsing the tree never piles up tabs. Opening a file for real reuses or
+    /// promotes that tab rather than showing the same file twice.
+    /// </summary>
+    public async Task OpenFileAsync(string relativePath, bool preview)
     {
         var normalized = relativePath.Replace('\\', '/');
 
         try
         {
+            // Already open: bring it forward. Opening "for real" also settles a
+            // provisional tab — that is the double click on a file already previewed.
             var existing = Documents
                 .OfType<FileDocumentViewModel>()
                 .FirstOrDefault(d => string.Equals(d.RelativePath, normalized, StringComparison.OrdinalIgnoreCase));
 
             if (existing != null)
             {
+                if (!preview) existing.PromoteToPermanent();
                 Activate(existing);
+                Explorer.RevealFile(existing.RelativePath);
                 StatusMessage = $"已切换到: {existing.Title}";
                 return;
             }
 
-            AppLog.Info($"打开文件：{normalized}");
+            AppLog.Info(preview ? $"预览文件：{normalized}" : $"打开文件：{normalized}");
 
-            var document = _services.GetRequiredService<FileDocumentViewModel>();
-            document.Initialize(normalized);
-            document.TagsChanged += OnTagsMaybeChangedAsync;
+            // Reuse the provisional tab if there is one. A tab that is dirty or still
+            // loading is never reused: the first has been edited (an edit promotes it
+            // anyway), and the second is already reading a file this click would
+            // silently redirect.
+            var recycled = preview
+                ? Documents.OfType<FileDocumentViewModel>()
+                    .FirstOrDefault(d => d.IsPreview && !d.IsDirty && !d.IsLoading)
+                : null;
 
-            if (!await document.LoadAsync())
+            var document = recycled ?? _services.GetRequiredService<FileDocumentViewModel>();
+
+            if (recycled == null)
             {
-                StatusMessage = $"打开失败: {normalized}（详情见日志）";
-                AppLog.Error($"打开文件失败：{normalized}");
-                await _dialogService.ShowErrorAsync(
-                    "打开失败",
-                    document.InfoMessage + BuildLogHint());
-                return;
+                document.Initialize(normalized);
+                document.IsPreview = preview;
+                document.TagsChanged += OnTagsMaybeChangedAsync;
+
+                // Registered before the read so the tab is visible while it loads: a
+                // second click on the same file then finds it and promotes it instead
+                // of opening a second tab for one file.
+                AddDocument(document);
+
+                if (!await document.LoadAsync())
+                {
+                    RemoveDocument(document);
+                    await ReportOpenFailureAsync(document, normalized);
+                    return;
+                }
+            }
+            else
+            {
+                // Bring the provisional tab forward while it loads. ReloadAsAsync only
+                // commits the new path once the read succeeded, so a failure cannot
+                // leave the buffer holding one file's text under another file's path.
+                Activate(document);
+
+                if (!await document.ReloadAsAsync(normalized))
+                {
+                    await ReportOpenFailureAsync(document, normalized);
+                    return;
+                }
             }
 
-            AddDocument(document);
-            StatusMessage = $"已打开: {normalized}";
+            Explorer.RevealFile(normalized);
+            StatusMessage = preview
+                ? $"预览: {normalized}（双击可在标签页中固定打开）"
+                : $"已打开: {normalized}";
             AppLog.Info($"打开成功：{normalized}（{document.LineCount} 行 / {document.CharacterCount} 字符）");
         }
         catch (Exception ex)
@@ -436,6 +484,13 @@ public partial class MainViewModel : ViewModelBase, IWorkspaceShell
                 $"打开 {normalized} 时发生未预期的错误：\n{ex.GetType().Name}: {ex.Message}" +
                 BuildLogHint());
         }
+    }
+
+    private async Task ReportOpenFailureAsync(FileDocumentViewModel document, string normalized)
+    {
+        StatusMessage = $"打开失败: {normalized}（详情见日志）";
+        AppLog.Error($"打开文件失败：{normalized}");
+        await _dialogService.ShowErrorAsync("打开失败", document.InfoMessage + BuildLogHint());
     }
 
     /// <summary>Point the user at the log file whenever something fails.</summary>

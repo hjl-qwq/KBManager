@@ -220,7 +220,9 @@ public partial class SearchViewModel : ViewModelBase
             return;
         }
 
-        await Shell.OpenFileAsync(item.RelativePath);
+        // A search hit is a deliberate choice, so it opens for real rather than as a
+        // provisional preview tab.
+        await Shell.OpenFileAsync(item.RelativePath, preview: false);
     }
 
     /// <summary>

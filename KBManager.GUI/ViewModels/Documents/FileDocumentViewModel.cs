@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace KBManager.GUI.ViewModels;
@@ -29,7 +28,6 @@ public partial class FileDocumentViewModel : DocumentViewModel
     private string _savedContent = string.Empty;
 
     private string _lineEnding = "\n";
-    private int _gutterLineCount = -1;
     private List<TagWithCountDto> _allTags = new();
 
     /// <summary>Whether the file on disk starts with a UTF-8 BOM (preserved on save).</summary>
@@ -68,22 +66,28 @@ public partial class FileDocumentViewModel : DocumentViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Title))]
     [NotifyPropertyChangedFor(nameof(LocationLabel))]
+    [NotifyPropertyChangedFor(nameof(HasLocationDetail))]
     private string _relativePath = string.Empty;
 
     public override string Title => System.IO.Path.GetFileName(RelativePath);
 
     public override string LocationLabel => RelativePath;
 
+    /// <summary>The folder part of the path is worth showing under the file name.</summary>
+    public override bool HasLocationDetail => RelativePath.Contains('/');
+
     public override bool CanSave => !IsLoading;
 
     // ── Text buffer ────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// The document text. Soft wrapping is a display concern only: the buffer keeps
+    /// one logical line per newline no matter how it is wrapped on screen, so the
+    /// file on disk never gains hard breaks. The line-number gutter is rendered by
+    /// the view, which derives it from the editor's real text layout.
+    /// </summary>
     [ObservableProperty]
     private string _content = string.Empty;
-
-    /// <summary>Newline-joined line numbers, aligned with the editor's line height.</summary>
-    [ObservableProperty]
-    private string _gutterText = "1";
 
     [ObservableProperty]
     private int _lineCount = 1;
@@ -185,6 +189,25 @@ public partial class FileDocumentViewModel : DocumentViewModel
         }
     }
 
+    /// <summary>
+    /// Point this document at another file and load it — the recycling of a
+    /// provisional (preview) tab when the user single-clicks the next file.
+    ///
+    /// The path is only committed once the read succeeded: a failed load would
+    /// otherwise leave the buffer showing one file's text under another file's path,
+    /// and a later save would write it to the wrong place.
+    /// </summary>
+    public async Task<bool> ReloadAsAsync(string relativePath)
+    {
+        var previousPath = RelativePath;
+        Initialize(relativePath);
+
+        if (await LoadAsync()) return true;
+
+        Initialize(previousPath);
+        return false;
+    }
+
     public override async Task<bool> SaveAsync()
     {
         var repository = _gitHelper.ReadGitConfig().RepositoryDirectory;
@@ -212,7 +235,7 @@ public partial class FileDocumentViewModel : DocumentViewModel
         return true;
     }
 
-    /// <summary>Save button in the editor toolbar.</summary>
+    /// <summary>Save button on the document status strip (Ctrl+S as well).</summary>
     [RelayCommand]
     private async Task Save() => await SaveAsync();
 
@@ -256,6 +279,11 @@ public partial class FileDocumentViewModel : DocumentViewModel
     partial void OnContentChanged(string value)
     {
         IsDirty = !string.Equals(value, _savedContent, StringComparison.Ordinal);
+
+        // Editing a provisional tab makes it a real one (VS Code promotes a preview
+        // as soon as it is touched).
+        if (IsDirty) PromoteToPermanent();
+
         OnPropertyChanged(nameof(CharacterCount));
         UpdateLineMetrics(value);
         UpdateCaretPosition();
@@ -272,22 +300,6 @@ public partial class FileDocumentViewModel : DocumentViewModel
         }
 
         LineCount = lines;
-
-        // Rebuilding the gutter string is O(n); only do it when the count changes.
-        if (lines == _gutterLineCount) return;
-        _gutterLineCount = lines;
-        GutterText = BuildGutterText(lines);
-    }
-
-    private static string BuildGutterText(int lines)
-    {
-        var sb = new StringBuilder(lines * 4);
-        for (int i = 1; i <= lines; i++)
-        {
-            if (i > 1) sb.Append('\n');
-            sb.Append(i);
-        }
-        return sb.ToString();
     }
 
     private void UpdateCaretPosition()
@@ -435,6 +447,18 @@ public partial class FileDocumentViewModel : DocumentViewModel
     public async Task SyncTagsFromIndexAsync()
     {
         await LoadTagsAsync();
+    }
+
+    /// <summary>
+    /// Hide the autocomplete list. Called when the user moves on to the text surface,
+    /// so the dropdown cannot sit on top of the document it was only helping to tag.
+    /// </summary>
+    public void DismissTagSuggestions()
+    {
+        if (!HasTagSuggestions) return;
+
+        TagSuggestions.Clear();
+        HasTagSuggestions = false;
     }
 
     private async Task RaiseTagsChangedAsync()
