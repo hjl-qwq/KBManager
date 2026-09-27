@@ -196,7 +196,11 @@ public partial class ExplorerViewModel : ViewModelBase
             FileSummary = _fileEntries.Count == 0
                 ? "仓库中没有 Markdown 文件"
                 : $"共 {_fileEntries.Count} 个文件";
-            ClearBusy(FileSummary);
+
+            // The count is already in the header above; leaving it in the status line as
+            // well just printed the same sentence twice in one panel.
+            ClearBusy();
+            StatusMessage = string.Empty;
         }
         catch (Exception ex)
         {

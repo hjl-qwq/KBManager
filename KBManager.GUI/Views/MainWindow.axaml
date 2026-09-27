@@ -21,7 +21,17 @@
          status message) lives in the status bar at the bottom. -->
     <Grid RowDefinitions="*,Auto">
         <!-- ═══ Workspace: activity bar · sidebar · splitter · editor ═══ -->
-        <Grid Grid.Row="0" ColumnDefinitions="56,300,Auto,*">
+        <Grid Grid.Row="0">
+            <!-- The sidebar column has a floor: the splitter may not shrink it past the
+                 width its own header needs (the "共 N 个文件" summary plus the 新建 /
+                 同步 / 折叠 buttons), otherwise the panel becomes unreadable.
+                 200 ≈ margins 16 + summary ≈ 62 + three buttons ≈ 99 + spacing. -->
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="56" />
+                <ColumnDefinition Width="300" MinWidth="200" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
             <!-- Activity bar.
                  Top group switches the sidebar panel; the bottom group is pinned
                  like VS Code's settings/account corner and opens a tab in the
