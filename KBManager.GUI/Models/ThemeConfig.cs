@@ -43,7 +43,7 @@ public class ThemeConfig
     public string BackgroundNavPressedColor { get; set; } = "#D0D0D0";
     public string BackgroundInputColor { get; set; } = "#FFFFFF";
     /// <summary>资源管理器右侧的计数栏；半透明的主色，好让选中 / 悬停底色透出来。</summary>
-    public string BackgroundCountColumnColor { get; set; } = "#1A1565C0";
+    public string BackgroundCountColumnColor { get; set; } = "#141565C0";
 
     // ── 边框色 ──
     public string BorderDefaultColor { get; set; } = "#E0E0E0";

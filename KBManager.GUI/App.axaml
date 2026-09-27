@@ -158,15 +158,6 @@
             <Setter Property="MinHeight" Value="22" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="FontSize" Value="12.5" />
-            <!--
-                Fluent 把 TreeViewItem 的 VerticalAlignment 设成 Center，模板里的
-                PART_HeaderPresenter 是 TemplateBinding 这个属性的 —— 于是行内容只有自身
-                需要的高度（约 17px），被居中放进 22px 的行里，上下各留一段空隙。
-                行内容里画的东西（比如计数栏底色）就会因此断成一截一截。
-                这里改成 Stretch，让行内容正好铺满整行：中心的相对位置不变（原本就是居中的），
-                只是高度补齐到 22px，相邻两行的色块才能首尾相接。
-            -->
-            <Setter Property="VerticalAlignment" Value="Stretch" />
         </Style>
         <Style Selector="TreeViewItem:selected /template/ Border#PART_LayoutRoot">
             <Setter Property="Background" Value="{DynamicResource BackgroundSelectedColor}" />

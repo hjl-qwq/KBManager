@@ -96,18 +96,9 @@
                                        TextTrimming="None" />
                         </Border>
 
-                        <!-- The count column: its own faint background plus a hairline on
-                             the left, so the badge / file count reads as a separate strip
-                             instead of blending into the file name next to it. Both come
-                             from the accent hue (not grey) and are semi-transparent, so the
-                             row's selection and hover colours still show through and the
-                             strip stays in the same colour family as the tag badges.
-                             The band only tiles seamlessly because TreeViewItem rows are
-                             stretched to their full height, see App.axaml. -->
-                        <Border Grid.Column="1"
-                                Background="{DynamicResource BackgroundCountColumnColor}"
-                                BorderBrush="{DynamicResource BorderCountColumnColor}"
-                                BorderThickness="1,0,0,0" />
+                        <!-- The strip itself is one continuous band drawn by the panel,
+                             not by every row (see the Border after the TreeView). Each row
+                             only reserves the width here so names stop before the badge. -->
 
                         <!-- Tag count badge (files), right-aligned in the count column -->
                         <Border Grid.Column="1"
@@ -196,6 +187,23 @@
                 </TreeDataTemplate>
             </TreeView.ItemTemplate>
         </TreeView>
+
+        <!-- ═══ Count column strip ═══
+             这一条竖带整块画在面板上，而不是每一行各画一段：行内容的高度由 TreeViewItem
+             模板决定（内容只有自身需要的高度，被居中放进行里），逐行画必然在行与行之间
+             留下缝隙。整块画就不可能有间隔 —— 它从树顶一直连到树底，宽度与每行预留的
+             28px 严格一致（改这里也要改上面 item template 的列宽）。
+             画在树**之上**：行的选中 / 悬停底色是不透明的，画在下面会被盖住而断掉；
+             半透明所以底色仍然透得出来。IsHitTestVisible=False 让点击与滚轮照常落到树和
+             滚动条上。 -->
+        <Border Grid.Row="2"
+                Width="28"
+                HorizontalAlignment="Right"
+                IsHitTestVisible="False"
+                IsVisible="{Binding IsRepositoryConfigured}"
+                Background="{DynamicResource BackgroundCountColumnColor}"
+                BorderBrush="{DynamicResource BorderCountColumnColor}"
+                BorderThickness="1,0,0,0" />
 
         <!-- ═══ Hint / status ═══ -->
         <TextBlock Grid.Row="3"

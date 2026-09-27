@@ -198,7 +198,7 @@ public class ThemeManager
   // ── 背景色 ──
   ""BackgroundDefaultColor"": ""#FFFFFF"",    // 主内容区背景
   ""BackgroundInputColor"": ""#FFFFFF"",      // 输入框背景
-  ""BackgroundCountColumnColor"": ""#1A1565C0"",      // 资源管理器计数栏（半透明主色）
+  ""BackgroundCountColumnColor"": ""#141565C0"",      // 资源管理器计数栏（半透明主色）
   ""BackgroundSidebarColor"": ""#F5F5F5"",    // 左侧导航背景
   ""BackgroundSectionColor"": ""#F8F8F8"",    // 设置页分段背景
   ""BackgroundFooterColor"": ""#FAFAFA"",     // 表格底部摘要
