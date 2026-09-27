@@ -26,8 +26,6 @@ public class ThemeConfig
     public string TextSecondaryColor { get; set; } = "#555555";
     public string TextMutedColor { get; set; } = "#888888";
     public string TextStatusColor { get; set; } = "#666666";
-    public string TextOnPrimaryColor { get; set; } = "#FFFFFF";
-    public string TextOnPrimaryLightColor { get; set; } = "#B3D9FF";
     public string TextOnDarkColor { get; set; } = "#D4D4D4";
     public string TextLinkColor { get; set; } = "#1565C0";
     public string TextDangerColor { get; set; } = "#C62828";
@@ -49,9 +47,6 @@ public class ThemeConfig
     public string BorderDefaultColor { get; set; } = "#E0E0E0";
     public string BorderInputColor { get; set; } = "#D0D0D0";
     public string BorderFocusColor { get; set; } = "#0078D4";
-
-    // ── 标题栏 ──
-    public string TitleBarBackgroundColor { get; set; } = "#0078D4";
 
     // ── 光标 / 特殊 ──
     public string CaretColor { get; set; } = "#333333";
@@ -121,8 +116,6 @@ public class ThemeConfig
             ["TextSecondaryColor"] = TextSecondaryColor,
             ["TextMutedColor"] = TextMutedColor,
             ["TextStatusColor"] = TextStatusColor,
-            ["TextOnPrimaryColor"] = TextOnPrimaryColor,
-            ["TextOnPrimaryLightColor"] = TextOnPrimaryLightColor,
             ["TextOnDarkColor"] = TextOnDarkColor,
             ["TextLinkColor"] = TextLinkColor,
             ["TextDangerColor"] = TextDangerColor,
@@ -140,7 +133,6 @@ public class ThemeConfig
             ["BorderDefaultColor"] = BorderDefaultColor,
             ["BorderInputColor"] = BorderInputColor,
             ["BorderFocusColor"] = BorderFocusColor,
-            ["TitleBarBackgroundColor"] = TitleBarBackgroundColor,
             ["CaretColor"] = CaretColor,
             ["WatermarkColor"] = WatermarkColor,
             ["ScrollBarThumbColor"] = ScrollBarThumbColor,

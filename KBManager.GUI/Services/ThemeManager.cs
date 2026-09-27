@@ -191,8 +191,6 @@ public class ThemeManager
   ""TextSecondaryColor"": ""#555555"",        // 标签、次要文字
   ""TextMutedColor"": ""#888888"",            // 提示、副标题
   ""TextStatusColor"": ""#666666"",           // 状态栏文字
-  ""TextOnPrimaryColor"": ""#FFFFFF"",        // 主色背景上的文字
-  ""TextOnPrimaryLightColor"": ""#B3D9FF"",   // 标题栏副标题
   ""TextOnDarkColor"": ""#D4D4D4"",           // 深色背景上的文字（日志区）
   ""TextLinkColor"": ""#1565C0"",             // 链接、标签文字
   ""TextDangerColor"": ""#C62828"",           // 危险操作文字
@@ -214,9 +212,6 @@ public class ThemeManager
   ""BorderDefaultColor"": ""#E0E0E0"",        // 通用边框、分隔线
   ""BorderInputColor"": ""#D0D0D0"",          // 输入框边框
   ""BorderFocusColor"": ""#0078D4"",          // 输入框聚焦边框
-
-  // ── 标题栏 ──
-  ""TitleBarBackgroundColor"": ""#0078D4"",
 
   // ── 光标 / 特殊 ──
   ""CaretColor"": ""#333333"",

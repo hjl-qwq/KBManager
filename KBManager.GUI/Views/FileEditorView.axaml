@@ -7,8 +7,9 @@
 
         <!-- ═══ Document strip: exactly one row, tags on the left, add-tag on the right ═══
              The chip list scrolls sideways rather than wrapping, so adding tags can
-             never push the text surface down. -->
-        <Border Grid.Row="0" Classes="toolbar" Padding="10,4">
+             never push the text surface down. Trimmed to the same height as the tab
+             strip above, so the editor's three chrome rows read as one grid. -->
+        <Border Grid.Row="0" Classes="toolbar" Padding="10,1">
             <Grid ColumnDefinitions="*,Auto">
 
                 <ScrollViewer Grid.Column="0"
@@ -143,75 +144,64 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <!-- ═══ Status strip: document metrics on the left, save actions on the right ═══ -->
+        <!-- ═══ Status strip: document metrics and feedback, one short line ═══
+             No save / reload buttons here: Ctrl+S and Ctrl+R (and the window's
+             key bindings) are the save path, and the strip stays the same height as
+             the window status bar instead of being sized by a button. -->
         <Border Grid.Row="2"
                 Background="{DynamicResource BackgroundFooterColor}"
                 BorderBrush="{DynamicResource BorderDefaultColor}"
                 BorderThickness="0,1,0,0"
-                Padding="12,4">
-            <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Grid.Column="0"
-                            Orientation="Horizontal"
-                            Spacing="14"
-                            VerticalAlignment="Center"
-                            ClipToBounds="True">
-                    <TextBlock FontSize="11"
-                               Foreground="{DynamicResource TextMutedColor}"
-                               Text="{Binding CaretLine, StringFormat='行 {0}'}" />
-                    <TextBlock FontSize="11"
-                               Foreground="{DynamicResource TextMutedColor}"
-                               Text="{Binding CaretColumn, StringFormat='列 {0}'}" />
-                    <TextBlock FontSize="11"
-                               Foreground="{DynamicResource TextMutedColor}"
-                               Text="{Binding LineCount, StringFormat='共 {0} 行'}" />
-                    <TextBlock FontSize="11"
-                               Foreground="{DynamicResource TextMutedColor}"
-                               Text="{Binding CharacterCount, StringFormat='{}{0} 字符'}" />
-                    <TextBlock FontSize="11"
-                               Foreground="{DynamicResource TextMutedColor}"
-                               Text="{Binding EncodingLabel}" />
-                    <TextBlock FontSize="11"
-                               Foreground="{DynamicResource TextMutedColor}"
-                               Text="{Binding LineEndingLabel}" />
-                    <TextBlock FontSize="11"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TabDirtyIndicatorColor}"
-                               IsVisible="{Binding IsDirty}"
-                               Text="未保存" />
-                    <TextBlock FontSize="11"
-                               Foreground="{DynamicResource TextDangerColor}"
-                               IsVisible="{Binding HasDecodingWarning}"
-                               Text="编码警告：该文件不是有效的 UTF-8" />
-                    <!-- Per-document feedback (save result, tag result, load warning).
-                         It lives here because the tag row above is a single line now. -->
-                    <TextBlock FontSize="11"
-                               MaxWidth="240"
-                               VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis"
-                               Foreground="{DynamicResource TextLinkColor}"
-                               Text="{Binding InfoMessage}" />
-                </StackPanel>
-
-                <StackPanel Grid.Column="1"
-                            Orientation="Horizontal"
-                            Spacing="6"
-                            VerticalAlignment="Center">
-                    <!-- Re-read the file from disk without leaving the tab -->
-                    <Button Classes="toolbar"
-                            Content="重新加载"
-                            Height="22"
-                            Command="{Binding ReloadCommand}"
-                            ToolTip.Tip="丢弃缓冲区修改并从磁盘重新读取 (Ctrl+R)" />
-                    <Button Classes="primary"
-                            Content="保存"
-                            Height="22"
-                            Padding="14,2"
-                            FontSize="11.5"
-                            Command="{Binding SaveCommand}"
-                            IsEnabled="{Binding CanSave}"
-                            ToolTip.Tip="保存到磁盘 (Ctrl+S)" />
-                </StackPanel>
-            </Grid>
+                Height="26"
+                Padding="12,0">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="14"
+                        VerticalAlignment="Center"
+                        ClipToBounds="True">
+                <TextBlock FontSize="11"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextMutedColor}"
+                           Text="{Binding CaretLine, StringFormat='行 {0}'}" />
+                <TextBlock FontSize="11"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextMutedColor}"
+                           Text="{Binding CaretColumn, StringFormat='列 {0}'}" />
+                <TextBlock FontSize="11"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextMutedColor}"
+                           Text="{Binding LineCount, StringFormat='共 {0} 行'}" />
+                <TextBlock FontSize="11"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextMutedColor}"
+                           Text="{Binding CharacterCount, StringFormat='{}{0} 字符'}" />
+                <TextBlock FontSize="11"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextMutedColor}"
+                           Text="{Binding EncodingLabel}" />
+                <TextBlock FontSize="11"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextMutedColor}"
+                           Text="{Binding LineEndingLabel}" />
+                <!-- The save affordance now that the button is gone -->
+                <TextBlock FontSize="11"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TabDirtyIndicatorColor}"
+                           IsVisible="{Binding IsDirty}"
+                           Text="未保存 · Ctrl+S 保存" />
+                <TextBlock FontSize="11"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextDangerColor}"
+                           IsVisible="{Binding HasDecodingWarning}"
+                           Text="编码警告：该文件不是有效的 UTF-8" />
+                <!-- Per-document feedback (save result, tag result, load warning) -->
+                <TextBlock FontSize="11"
+                           MaxWidth="420"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource TextLinkColor}"
+                           Text="{Binding InfoMessage}" />
+            </StackPanel>
         </Border>
     </Grid>
 </UserControl>

@@ -16,44 +16,12 @@
         <KeyBinding Gesture="Ctrl+R" Command="{Binding ReloadActiveDocumentCommand}" />
     </Window.KeyBindings>
 
-    <Grid RowDefinitions="Auto,*,Auto">
-        <!-- ═══ Title bar ═══ -->
-        <Border Grid.Row="0"
-                Background="{DynamicResource TitleBarBackgroundColor}"
-                Padding="14,8">
-            <Grid ColumnDefinitions="Auto,*,Auto">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
-                    <TextBlock Text="KBManager"
-                               FontSize="15"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource TextOnPrimaryColor}"
-                               VerticalAlignment="Center" />
-                    <TextBlock Text="Editor + Manager"
-                               FontSize="11"
-                               Foreground="{DynamicResource TextOnPrimaryLightColor}"
-                               VerticalAlignment="Center" />
-                </StackPanel>
-
-                <TextBlock Grid.Column="1"
-                           Text="{Binding RepositoryPath}"
-                           FontSize="11"
-                           Margin="16,0"
-                           TextTrimming="CharacterEllipsis"
-                           Foreground="{DynamicResource TextOnPrimaryLightColor}"
-                           VerticalAlignment="Center" />
-
-                <TextBlock Grid.Column="2"
-                           Text="{Binding StatusMessage}"
-                           FontSize="11"
-                           MaxWidth="420"
-                           TextTrimming="CharacterEllipsis"
-                           Foreground="{DynamicResource TextOnPrimaryLightColor}"
-                           VerticalAlignment="Center" />
-            </Grid>
-        </Border>
-
+    <!-- Workspace only: no in-window title bar. The window's own title bar carries the
+         product name, and everything the removed bar used to show (repository path,
+         status message) lives in the status bar at the bottom. -->
+    <Grid RowDefinitions="*,Auto">
         <!-- ═══ Workspace: activity bar · sidebar · splitter · editor ═══ -->
-        <Grid Grid.Row="1" ColumnDefinitions="56,300,Auto,*">
+        <Grid Grid.Row="0" ColumnDefinitions="56,300,Auto,*">
             <!-- Activity bar.
                  Top group switches the sidebar panel; the bottom group is pinned
                  like VS Code's settings/account corner and opens a tab in the
@@ -158,29 +126,47 @@
             </Border>
         </Grid>
 
-        <!-- ═══ Status bar ═══ -->
-        <Border Grid.Row="2" Classes="statusbar" Padding="12,5">
-            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+        <!-- ═══ Status bar ═══
+             Carries the status message that the removed title bar used to show, so a
+             failed sync or a refused file operation is still visible. Fixed height, the
+             same as the document status strip inside the editor. -->
+        <Border Grid.Row="1" Classes="statusbar" Height="26" Padding="12,0">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
                 <TextBlock Grid.Column="0"
                            FontSize="11"
+                           VerticalAlignment="Center"
+                           MaxWidth="360"
+                           TextTrimming="CharacterEllipsis"
                            Foreground="{DynamicResource TextStatusColor}"
-                           Text="{Binding RepositoryPath, StringFormat='仓库: {0}'}"
-                           TextTrimming="CharacterEllipsis" />
+                           Text="{Binding RepositoryPath, StringFormat='仓库: {0}'}" />
 
                 <TextBlock Grid.Column="1"
                            FontSize="11"
                            Margin="16,0"
+                           VerticalAlignment="Center"
                            Foreground="{DynamicResource TextMutedColor}"
                            Text="{Binding FileCount, StringFormat='文件 {0}'}" />
 
                 <TextBlock Grid.Column="2"
                            FontSize="11"
+                           VerticalAlignment="Center"
                            Foreground="{DynamicResource TextMutedColor}"
                            Text="{Binding TagCount, StringFormat='标签 {0}'}" />
 
                 <TextBlock Grid.Column="3"
                            FontSize="11"
+                           Margin="16,0"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
                            Foreground="{DynamicResource TextStatusColor}"
+                           Text="{Binding StatusMessage}" />
+
+                <TextBlock Grid.Column="4"
+                           FontSize="11"
+                           VerticalAlignment="Center"
+                           MaxWidth="320"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource TextMutedColor}"
                            Text="{Binding ActiveDocumentLocation}" />
             </Grid>
         </Border>
