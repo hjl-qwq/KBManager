@@ -14,7 +14,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AvaloniaResource Include="Assets\**" />
+    <!-- Assets/ 是「整个目录都作为嵌入资源」的地方，因此必须把 JS 工程目录排除掉：
+         那里面有 node_modules（几百个文件），一旦被当成嵌入资源收进来，
+         Avalonia 的资源/XAML 编译步骤会炸（表现为**每一个** .axaml 都报
+         AVLN2000 "Data at the root level is invalid"，而磁盘上的 axaml 其实是好的）。
+         真正需要嵌入的只有打包产物 editor.bundle.js。 -->
+    <AvaloniaResource Include="Assets\**" Exclude="Assets\preview\editor\**" />
     <EmbeddedResource Include="Config\theme.json" />
   </ItemGroup>
 

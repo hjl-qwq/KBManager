@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using KBManager.GUI.Services;
 using KBManager.GUI.ViewModels;
@@ -58,6 +59,9 @@ public partial class PreviewProbeView : UserControl
     private TextBlock? _statusText;
     private NativeWebView? _webView;
 
+    /// <summary>「就地编辑」开关（C1 切片一）。只在探针页出现。</summary>
+    private CheckBox? _editorToggle;
+
     /// <summary>宿主 ViewModel，用来跟随「当前打开的文档」。</summary>
     private MainViewModel? _shell;
 
@@ -96,6 +100,13 @@ public partial class PreviewProbeView : UserControl
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
+    /// <summary>嵌入资源里编辑器脚本的地址（由 Assets/preview/editor 打包而来）。</summary>
+    private static readonly Uri EditorAssetUri = new("avares://KBManager.GUI/Assets/preview/editor.bundle.js");
+
+    /// <summary>编辑器脚本落到临时目录后的 URL；null 表示这次构建里没有它。</summary>
+    private static string? _editorScriptHref;
+    private static bool _editorScriptResolved;
+
     /// <summary>
     /// 是否在页面顶部显示诊断栏。作为工具页（验证台）时是 true，用来核对映射层产出的钩子；
     /// 作为编辑区右侧分栏日常使用时由 XAML 传 false。
@@ -127,8 +138,16 @@ public partial class PreviewProbeView : UserControl
             _loadModeText = this.FindControl<TextBlock>("LoadModeText");
             _statusText = this.FindControl<TextBlock>("StatusText");
             _webView = this.FindControl<NativeWebView>("ProbeWebView");
+            _editorToggle = this.FindControl<CheckBox>("EditorToggle");
 
             if (_themeBox == null || _webView == null || _statusText == null) return;
+
+            // 「就地编辑」只在探针页给出来：右侧 480px 的分栏不适合编辑，也不该出现实验开关。
+            if (_editorToggle != null)
+            {
+                _editorToggle.IsVisible = ShowDiagnostics;
+                _editorToggle.IsCheckedChanged += (_, _) => Render(forceNavigate: true);
+            }
 
             // 页面加载完成才知道可以安全地「只替换正文」。
             _webView.NavigationCompleted += (_, _) =>
@@ -244,7 +263,8 @@ public partial class PreviewProbeView : UserControl
     private void OnSourcePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         // 正文每敲一个字都会走到这里，所以只重置定时器，不直接渲染。
-        if (e.PropertyName == nameof(FileDocumentViewModel.Content))
+        // 就地编辑面模式下不跟随源文档：那会把用户正在编辑的 ProseMirror 文档冲掉。
+        if (e.PropertyName == nameof(FileDocumentViewModel.Content) && _editorToggle?.IsChecked != true)
         {
             _debounce.Stop();
             _debounce.Start();
@@ -268,10 +288,25 @@ public partial class PreviewProbeView : UserControl
         var lines = markdown.Length == 0 ? 0 : markdown.Count(c => c == '\n') + 1;
         var body = _renderer.ToHtml(markdown);
 
+        // 就地编辑面（C1 切片一）：#write 交给 ProseMirror，此时既不能走「只替换正文」的快路径
+        // （会把它冲掉），也不跟随源文档重渲染。
+        var editorHref = _editorToggle?.IsChecked == true ? EditorScriptHref() : null;
+        var editable = editorHref != null;
+
+        // 勾了开关却没有脚本（构建机器上没有 Node，打包被跳过）时要说清楚，
+        // 否则表现是「勾了没反应」，很难判断。
+        if (_editorToggle?.IsChecked == true && editorHref == null)
+        {
+            SetLoadMode("未打包");
+            _statusText.Text = "编辑器脚本还没打包：请在 KBManager.GUI/Assets/preview/editor 下运行 "
+                             + "npm install && npm run build（或直接跑 build.sh，它已经接好了这一步）";
+            return;
+        }
+
         // ══ 快路径：页面还在，主题也没换 → 只替换 #write 的内容，绝不重新导航 ══
         // 这是「编辑时预览不闪」的关键：整页导航会重新解析 CSS、重新布局、重新加载字体，
         // 首帧之前露白底；只换 innerHTML 则样式表、字体、滚动位置全都不动。
-        if (!forceNavigate && _pageLoaded && _loadedTheme == theme)
+        if (!forceNavigate && !editable && _pageLoaded && _loadedTheme == theme)
         {
             try
             {
@@ -297,7 +332,8 @@ public partial class PreviewProbeView : UserControl
         try
         {
             var page = PreviewDocumentBuilder.Build(
-                FileUri(Path.Combine(_themeDirectory, theme)).AbsoluteUri, theme, body, ResolveBaseHref(), ShowDiagnostics);
+                FileUri(Path.Combine(_themeDirectory, theme)).AbsoluteUri, theme, body, ResolveBaseHref(),
+                ShowDiagnostics, editorHref, editable ? markdown : null);
 
             // 首次加载写成一个真实文件而不是用 NavigateToString：file:// 文档加载同源样式表与字体
             // 是最常规的路径，实测 Typora 主题里的相对路径 woff2 能正常加载。
@@ -314,8 +350,10 @@ public partial class PreviewProbeView : UserControl
             DeleteProbeFile(_lastProbeFile, probeFile);
             _lastProbeFile = probeFile;
 
-            SetLoadMode("整页加载");
-            _statusText.Text = $"来源：{source} · {lines} 行 · 主题 {theme} · 正在加载页面…";
+            SetLoadMode(editable ? "就地编辑" : "整页加载");
+            _statusText.Text = editable
+                ? $"就地编辑面（实验）：{source} · {lines} 行 · 主题 {theme} · 在右侧直接编辑，不写盘"
+                : $"来源：{source} · {lines} 行 · 主题 {theme} · 正在加载页面…";
         }
         catch (Exception ex)
         {
@@ -340,6 +378,37 @@ public partial class PreviewProbeView : UserControl
     {
         if (_loadModeText != null)
             _loadModeText.Text = mode;
+    }
+
+    /// <summary>
+    /// 取出嵌入的编辑器脚本，写到临时目录后返回它的 file:// URL（页面以 classic script 加载）。
+    /// 返回 null 表示这次构建里没有打包好的编辑器 —— build.sh 在没有 Node 时会跳过打包，
+    /// 此时只读预览照常工作，页面会报告「挂载失败」。每个进程只写一次。
+    /// </summary>
+    private static string? EditorScriptHref()
+    {
+        if (_editorScriptResolved) return _editorScriptHref;
+
+        _editorScriptResolved = true;
+
+        try
+        {
+            if (!AssetLoader.Exists(EditorAssetUri)) return null;
+
+            using var stream = AssetLoader.Open(EditorAssetUri);
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            var script = reader.ReadToEnd();
+
+            var target = Path.Combine(Path.GetTempPath(), "kbmanager-preview-editor.js");
+            File.WriteAllText(target, script, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            _editorScriptHref = FileUri(target).AbsoluteUri;
+        }
+        catch
+        {
+            _editorScriptHref = null;
+        }
+
+        return _editorScriptHref;
     }
 
     /// <summary>

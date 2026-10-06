@@ -1,4 +1,6 @@
 using System.Net;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace KBManager.GUI.Services;
 
@@ -22,21 +24,48 @@ public static class PreviewDocumentBuilder
     /// 组装整页。<paramref name="baseHref"/> 非空时注入 <c>&lt;base&gt;</c>，让笔记里的相对
     /// 图片路径能解析；<paramref name="showDiagnostics"/> 打开时页面顶部会多一条诊断栏，
     /// 数出映射层产出的 Typora 钩子数量（验证用，日常预览应关掉）。
+    ///
+    /// <paramref name="editorScriptHref"/> 非空时进入<b>就地编辑面</b>模式：<c>#write</c> 里只放一个
+    /// 挂载点，正文由 ProseMirror 自己产生（Markdig 的 <paramref name="bodyHtml"/> 不进页面），
+    /// 并由该脚本把 <paramref name="editorMarkdown"/> 解析成文档。这是 C1 切片一的验证开关。
     /// </summary>
     public static string Build(
-        string themeCssHref, string themeName, string bodyHtml, string? baseHref, bool showDiagnostics)
+        string themeCssHref, string themeName, string bodyHtml, string? baseHref, bool showDiagnostics,
+        string? editorScriptHref = null, string? editorMarkdown = null)
     {
         var baseTag = string.IsNullOrEmpty(baseHref)
             ? string.Empty
             : $"<base href=\"{WebUtility.HtmlEncode(baseHref)}\">\n";
 
+        var editable = !string.IsNullOrEmpty(editorScriptHref);
+        var body = editable ? "<div id=\"kbEditor\"></div>" : bodyHtml;
+
+        var editorScript = editable
+            ? $"<script src=\"{WebUtility.HtmlEncode(editorScriptHref!)}\"></script>\n" +
+              "<script>window.kbEditor.mount(" +
+              JsonSerializer.Serialize(editorMarkdown ?? string.Empty, EditorJsonOptions) +
+              ");</script>\n"
+            : string.Empty;
+
+        // 替换顺序是有讲究的，不能随手调：
+        //   1) 诊断栏先注入 —— DiagnosticsMarkup 自己带 __THEME_NAME__，必须在替换它之前进模板；
+        //   2) 主题相关占位符其次；
+        //   3) 正文与编辑器脚本最后 —— 它们的内容来自笔记，万一笔记里写了 __BODY__ 之类的字样，
+        //      放在最后就不会被后续替换误伤。
         return Template
+            .Replace("__DIAGNOSTICS__", showDiagnostics ? DiagnosticsMarkup : string.Empty)
             .Replace("__BASE_TAG__", baseTag)
             .Replace("__THEME_CSS__", WebUtility.HtmlEncode(themeCssHref))
             .Replace("__THEME_NAME__", WebUtility.HtmlEncode(themeName))
-            .Replace("__BODY__", bodyHtml)
-            .Replace("__DIAGNOSTICS__", showDiagnostics ? DiagnosticsMarkup : string.Empty);
+            .Replace("__EDITOR_SCRIPT__", editorScript)
+            .Replace("__BODY__", body);
     }
+
+    /// <summary>把 Markdown 当 JS 字符串字面量交给页面时用。不转义非 ASCII，中文笔记不会膨胀成 \uXXXX。</summary>
+    private static readonly JsonSerializerOptions EditorJsonOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
 
     // 非插值 raw string：正文里全是 CSS/JS 的花括号，用 $"" 会把它们全当成占位符。
     private const string Template = """
@@ -152,7 +181,7 @@ window.kbSetBody = function (html) {
   return true;
 };
 </script>
-</body>
+__EDITOR_SCRIPT__</body>
 </html>
 """;
 
@@ -192,13 +221,17 @@ window.kbSetBody = function (html) {
     var family = firstFamily('body');
     var fonts = document.fonts ? (document.fonts.size + ' 个, ' + document.fonts.status) : 'n/a';
     var broken = [].filter.call(document.images, function (i) { return !i.complete || i.naturalWidth === 0; }).length;
+    // 就地编辑面挂载后由 ProseMirror 接管 #write，下面那些钩子计数数的就是它的 DOM。
+    var editor = window.kbEditorInfo;
 
     var lines = [
       '── 主题：__THEME_NAME__ ──',
       '用户代理     : ' + navigator.userAgent,
       '主题 CSS     : ' + (themeApplied ? '✅ 已进入样式表列表' : '⚠️ 列表里没有 .css') + '   ' + sheets.join('  |  '),
       '',
-      '【映射层产出的 Typora 钩子 —— 这几个数就是映射层对不对的直接证据】',
+      editor
+        ? '【编辑面已接管 #write：下面数的是 ProseMirror 的 DOM，不是 Markdig 的输出】'
+        : '【映射层产出的 Typora 钩子 —— 这几个数就是映射层对不对的直接证据】',
       '  代码块     : .md-fences=' + count('.md-fences') + '  .md-lang=' + count('.md-lang'),
       '  任务列表   : .task-list=' + count('.task-list') + '  .md-task-list-item=' + count('.md-task-list-item'),
       '  目录       : .md-toc=' + count('.md-toc') + '  .md-toc-item=' + count('.md-toc-item'),
@@ -216,6 +249,21 @@ window.kbSetBody = function (html) {
       '  .md-fences : background=' + pick('.md-fences', 'backgroundColor') + '  margin=' + pick('.md-fences', 'margin'),
       '  code 对照  : background=' + pick('code', 'backgroundColor')
     ];
+
+    if (editor) {
+      lines.push('');
+      lines.push('【就地编辑面（C1 切片一：只验证手感，不写盘）】');
+      lines.push(editor.mounted
+        ? '  挂载       : ✅ ProseMirror 已在 WebView 里跑起来   块=' + editor.blocks + '  字符=' + editor.chars
+        : '  挂载       : ⚠️ 失败 —— ' + editor.error);
+      if (editor.mounted) {
+        lines.push('  DOM 契约   : ' + editor.contract);
+        lines.push('  往返保真   : ' + (editor.roundTripIdentical
+          ? '✅ 解析→序列化与原文一致'
+          : '⚠️ 被规范化：' + editor.roundTripDetail));
+      }
+    }
+
     document.getElementById('kbdiag').textContent = lines.join('\n');
   }
   // 宿主每次只替换正文，之后要重新跑一次诊断；所以把 report 挂到 window 上。

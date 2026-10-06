@@ -13,7 +13,7 @@
              用 Grid 而不是横向 StackPanel：这一页同时被当作 480px 宽的右侧分栏使用，
              StackPanel 不会收缩，会直接溢出到编辑器上面；末尾的 * 列负责吃掉剩余宽度并省略。 -->
         <Border Grid.Row="0" Classes="toolbar" Padding="10,6">
-            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*" VerticalAlignment="Center">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*" VerticalAlignment="Center">
                 <TextBlock Grid.Column="0"
                            Text="Typora 主题"
                            FontSize="11.5"
@@ -43,7 +43,17 @@
                            VerticalAlignment="Center"
                            Foreground="{DynamicResource TextLinkColor}"
                            ToolTip.Tip="只更新正文 = 没有重新加载页面（打字时的正常状态）；整页加载 = 首次打开或切换主题" />
-                <TextBlock Grid.Column="4"
+                <!-- C1 切片一的验证开关。默认隐藏，代码里按 ShowDiagnostics 决定是否出现，
+                     所以它只在探针页可见，不会出现在 480px 的右侧分栏里。 -->
+                <CheckBox Grid.Column="4"
+                          Name="EditorToggle"
+                          Content="就地编辑"
+                          FontSize="11"
+                          Margin="0,0,8,0"
+                          VerticalAlignment="Center"
+                          IsVisible="False"
+                          ToolTip.Tip="实验：把 #write 交给 ProseMirror 就地编辑（C1 切片一，不写盘）。需要先 npm run build 生成编辑器脚本。" />
+                <TextBlock Grid.Column="5"
                            Name="ThemePathText"
                            FontSize="11"
                            VerticalAlignment="Center"

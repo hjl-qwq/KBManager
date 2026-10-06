@@ -364,3 +364,7 @@ FodyWeavers.xsd
 # KBManager: 本地构建产物与工具链
 .dotnet/
 .nuget/
+
+# 预览/编辑面的 JS 打包产物：由 build.sh（或手动 npm run build）从
+# KBManager.GUI/Assets/preview/editor/ 下的源码生成，生成物不进版本库。
+KBManager.GUI/Assets/preview/editor.bundle.js
