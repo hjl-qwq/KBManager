@@ -8,4 +8,23 @@
       </requestedPrivileges>
     </security>
   </trustInfo>
+
+  <!-- 必须声明受支持的操作系统，否则原生控件宿主无法创建子窗口。
+       失败链条（见 Avalonia issue #8004 与 PR #7111）：
+         UseRedirectionBitmap == false  →  Win32NativeControlHost(this, layered: true)
+         → CreateWindowEx(WS_EX_LAYERED, …, WS_CHILD, …)
+       而「WS_EX_LAYERED 用在子窗口上」是 Windows 8 才引入的行为，是否启用由本段的
+       supportedOS 声明决定；不声明时 Windows 保持旧行为，CreateWindowEx 直接失败返回 0。
+       Avalonia 只在失败后抛 InvalidOperationException 并提示补 manifest，不会重试。
+       任何原生控件宿主（NativeWebView / CefNet / 原生对话框）都需要它，不只是 Markdown 预览。 -->
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <!-- Windows 10 / 11 -->
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
+      <!-- Windows 8.1 -->
+      <supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}" />
+      <!-- Windows 8：分层子窗口这道门就开在这一档 -->
+      <supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}" />
+    </application>
+  </compatibility>
 </assembly>
