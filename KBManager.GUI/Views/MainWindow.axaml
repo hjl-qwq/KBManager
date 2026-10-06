@@ -14,6 +14,7 @@
         <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveActiveDocumentCommand}" />
         <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseDocumentCommand}" />
         <KeyBinding Gesture="Ctrl+R" Command="{Binding ReloadActiveDocumentCommand}" />
+        <KeyBinding Gesture="Ctrl+E" Command="{Binding TogglePreviewCommand}" />
     </Window.KeyBindings>
 
     <!-- Workspace only: no in-window title bar. The window's own title bar carries the
@@ -105,6 +106,19 @@
                                     Command="{Binding OpenGitCommand}"
                                     Content="Git"
                                     ToolTip.Tip="Git 操作（在编辑区以标签页打开）" />
+                        </Grid>
+
+                        <!-- Stage 0 一次性验证入口，验证后连同 PreviewProbeView 一起删除 -->
+                        <Grid ColumnDefinitions="3,*">
+                            <Border Grid.Column="0"
+                                    Background="{DynamicResource AccentBarColor}"
+                                    IsVisible="{Binding IsPreviewProbeActive}" />
+                            <Button Grid.Column="1"
+                                    Classes="activity"
+                                    Classes.active="{Binding IsPreviewProbeActive}"
+                                    Command="{Binding OpenPreviewProbeCommand}"
+                                    Content="探针"
+                                    ToolTip.Tip="Stage 0 验证：WebView + Typora 主题渲染探针（临时页面，验证后删除）" />
                         </Grid>
                     </StackPanel>
                 </Grid>

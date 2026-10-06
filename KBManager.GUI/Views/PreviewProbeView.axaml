@@ -1,0 +1,72 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KBManager.GUI.Views.PreviewProbeView">
+    <!-- ═══ Stage 1 验证页（非产品功能）═══
+         渲染管线（Markdig → Typora class 映射 → 主题 CSS → WebView）的验证台，
+         同时是正式预览功能的骨架：取当前打开文档的正文，编辑后自动重渲染。
+         页面顶部黑色诊断栏会数出映射层产出的 Typora 钩子数量，是这一层的直接证据。
+         实现与去留见 PreviewProbeView.axaml.cs 顶部注释。
+         这里不写任何 {Binding}，所以不需要 x:DataType；交互全部在 code-behind 里接。 -->
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- ═══ 主题选择 ═══
+             用 Grid 而不是横向 StackPanel：这一页同时被当作 480px 宽的右侧分栏使用，
+             StackPanel 不会收缩，会直接溢出到编辑器上面；末尾的 * 列负责吃掉剩余宽度并省略。 -->
+        <Border Grid.Row="0" Classes="toolbar" Padding="10,6">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*" VerticalAlignment="Center">
+                <TextBlock Grid.Column="0"
+                           Text="Typora 主题"
+                           FontSize="11.5"
+                           Margin="0,0,8,0"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryColor}" />
+                <ComboBox Grid.Column="1"
+                          Name="ThemeBox"
+                          Width="170"
+                          Height="26"
+                          Margin="0,0,8,0"
+                          FontSize="11.5"
+                          ToolTip.Tip="Typora 主题目录下的 .css 文件（默认 %APPDATA%\Typora\themes）" />
+                <Button Grid.Column="2"
+                        Name="ReloadButton"
+                        Classes="toolbar"
+                        Content="重新加载"
+                        Height="26"
+                        Margin="0,0,8,0"
+                        ToolTip.Tip="用当前主题重新生成预览页面" />
+                <!-- 上次更新走的是哪条路径。放在工具栏而不是底部状态条，是因为
+                     底部那条在 480px 的分栏里很容易被忽略。 -->
+                <TextBlock Grid.Column="3"
+                           Name="LoadModeText"
+                           FontSize="11"
+                           Margin="0,0,8,0"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextLinkColor}"
+                           ToolTip.Tip="只更新正文 = 没有重新加载页面（打字时的正常状态）；整页加载 = 首次打开或切换主题" />
+                <TextBlock Grid.Column="4"
+                           Name="ThemePathText"
+                           FontSize="11"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource TextMutedColor}" />
+            </Grid>
+        </Border>
+
+        <!-- ═══ 渲染面：Typora 主题的真实渲染结果 ═══ -->
+        <NativeWebView Grid.Row="1" Name="ProbeWebView" />
+
+        <!-- ═══ 状态条：报告主题目录与加载结果 ═══ -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource BackgroundFooterColor}"
+                BorderBrush="{DynamicResource BorderDefaultColor}"
+                BorderThickness="0,1,0,0"
+                Height="26"
+                Padding="12,0">
+            <TextBlock Name="StatusText"
+                       FontSize="11"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource TextMutedColor}" />
+        </Border>
+    </Grid>
+</UserControl>

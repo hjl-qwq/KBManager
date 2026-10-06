@@ -18,6 +18,10 @@
             <DataTemplate DataType="vm:StaleRecordsViewModel">
                 <views:StaleRecordsView />
             </DataTemplate>
+            <!-- Stage 1 验证页，验证后连同 PreviewProbeViewModel 一起删除 -->
+            <DataTemplate DataType="vm:PreviewProbeViewModel">
+                <views:PreviewProbeView />
+            </DataTemplate>
         </ContentControl.DataTemplates>
     </ContentControl>
 </UserControl>

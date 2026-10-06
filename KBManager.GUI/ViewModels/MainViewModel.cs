@@ -86,6 +86,26 @@ public partial class MainViewModel : ViewModelBase, IWorkspaceShell
     /// <summary>True when the log tool page is the active document.</summary>
     public bool IsLogActive => ActiveDocument is ToolDocumentViewModel { Page: LogViewModel };
 
+    /// <summary>True when the Stage 0 WebView probe page is the active document.</summary>
+    public bool IsPreviewProbeActive => ActiveDocument is ToolDocumentViewModel { Page: PreviewProbeViewModel };
+
+    // ── 编辑区右侧的 Markdown 实时预览分栏 ─────────────────────────────────
+
+    /// <summary>用户是否打开了预览分栏（Ctrl+E）。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewToggleLabel))]
+    [NotifyPropertyChangedFor(nameof(IsPreviewPaneVisible))]
+    private bool _isPreviewVisible;
+
+    /// <summary>
+    /// 预览分栏是否真的占位：既要开关打开，也要当前是文件文档 ——
+    /// 工具页（设置 / 日志 / Git / 探针）没有可预览的正文。
+    /// </summary>
+    public bool IsPreviewPaneVisible => IsPreviewVisible && HasActiveFileDocument;
+
+    /// <summary>开关按钮上的文字。用文字而不是样式表达状态，避免为这一次性状态新增 Style。</summary>
+    public string PreviewToggleLabel => IsPreviewVisible ? "收起" : "预览";
+
     [ObservableProperty]
     private string _repositoryPath = "(未配置)";
 
@@ -107,6 +127,13 @@ public partial class MainViewModel : ViewModelBase, IWorkspaceShell
 
     public FileDocumentViewModel? ActiveFile => ActiveDocument as FileDocumentViewModel;
 
+    /// <summary>
+    /// 最后被激活过的文件文档。工具页（设置 / 日志 / Git / 预览探针）成为当前文档时
+    /// <see cref="ActiveFile"/> 会变成 null，而预览需要知道「刚才在看哪篇笔记」，
+    /// 所以这里单独记一份。预览页与将来的预览栏都用它当来源。
+    /// </summary>
+    public FileDocumentViewModel? LastActiveFile { get; private set; }
+
     public bool CanSaveActiveDocument => ActiveDocument is { CanSave: true };
 
     public string ActiveDocumentLocation => ActiveDocument?.LocationLabel ?? string.Empty;
@@ -124,14 +151,23 @@ public partial class MainViewModel : ViewModelBase, IWorkspaceShell
         OnPropertyChanged(nameof(IsSettingsActive));
         OnPropertyChanged(nameof(IsGitActive));
         OnPropertyChanged(nameof(IsLogActive));
+        OnPropertyChanged(nameof(IsPreviewProbeActive));
+        OnPropertyChanged(nameof(IsPreviewPaneVisible));
 
         CloseDocumentCommand.NotifyCanExecuteChanged();
         SaveActiveDocumentCommand.NotifyCanExecuteChanged();
 
         // Whatever is in front of the user is also marked in the explorer, so an open
-        // tab can always be traced back to its place in the tree.
+        // tab can always be traced back to its place in the tree. The same assignment
+        // remembers the file for the preview page, which must keep showing the last note
+        // the user looked at even while a tool tab is in front.
         if (value is FileDocumentViewModel file)
+        {
+            LastActiveFile = file;
             Explorer.RevealFile(file.RelativePath);
+        }
+
+        OnPropertyChanged(nameof(LastActiveFile));
     }
 
     private void RaiseDocumentCollectionChanged()
@@ -283,6 +319,31 @@ public partial class MainViewModel : ViewModelBase, IWorkspaceShell
         var log = _services.GetRequiredService<LogViewModel>();
         AddDocument(new ToolDocumentViewModel("日志", log));
     }
+
+    /// <summary>
+    /// 预览验证页：验证「Markdown → Typora class 映射 → 主题 CSS → WebView」整条链，
+    /// 并跟随当前打开的文档实时重渲染。仍不是产品功能，编辑面一行不动；
+    /// 验证结束后连同 PreviewProbeView / PreviewProbeViewModel / csproj 里的引用一起决定去留。
+    /// </summary>
+    [RelayCommand]
+    private void OpenPreviewProbe()
+    {
+        var existing = Documents.FirstOrDefault(d => d is ToolDocumentViewModel { Page: PreviewProbeViewModel });
+        if (existing != null)
+        {
+            Activate(existing);
+            return;
+        }
+
+        AddDocument(new ToolDocumentViewModel("预览探针", new PreviewProbeViewModel(this)));
+    }
+
+    /// <summary>
+    /// 切换编辑区右侧的 Markdown 实时预览分栏（Ctrl+E）。预览始终跟随
+    /// <see cref="LastActiveFile"/>，正文一变就重渲染，所以可以边写边看。
+    /// </summary>
+    [RelayCommand]
+    private void TogglePreview() => IsPreviewVisible = !IsPreviewVisible;
 
     /// <summary>
     /// Open the stale-record cleanup page as a document tab. A full list belongs in

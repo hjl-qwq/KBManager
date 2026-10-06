@@ -25,6 +25,12 @@
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.1.5" />
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.1.5" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <!-- Markdown → HTML（MIT）。映射层见 Services/TyporaMarkdownRenderer.cs。 -->
+    <PackageReference Include="Markdig" Version="1.4.0" />
+    <!-- Stage 0 验证用：Avalonia 官方 WebView（MIT，声明依赖 Avalonia >= 11.1.0）。
+         用途、去留与验证清单见 Views/PreviewProbeView.axaml.cs 顶部注释。
+         验证完要么删掉这一行，要么它就成为 Markdown 预览的内核。 -->
+    <PackageReference Include="Avalonia.Controls.WebView" Version="11.4.1" />
     <!-- Debug-only diagnostics -->
     <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.1.5" />
     <!-- LibGit2Sharp native binaries for both platforms -->

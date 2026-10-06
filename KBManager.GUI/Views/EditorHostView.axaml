@@ -13,7 +13,9 @@
              close button together cover every pixel of it, so the tab is one target:
              click anywhere to activate, click the ✕ to close. -->
         <Border Grid.Row="0" Classes="tabstrip" IsVisible="{Binding HasDocuments}">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+          <Grid ColumnDefinitions="*,Auto">
+            <ScrollViewer Grid.Column="0"
+                          HorizontalScrollBarVisibility="Auto"
                           VerticalScrollBarVisibility="Disabled">
                 <ItemsControl ItemsSource="{Binding Documents}">
                     <ItemsControl.ItemsPanel>
@@ -89,19 +91,47 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
+
+            <!-- 实时预览开关。状态用按钮文字表达（预览 / 收起），
+                 这样不必为这一处状态新增 Style。 -->
+            <Button Grid.Column="1"
+                    Classes="toolbar"
+                    Height="26"
+                    Margin="8,0,6,0"
+                    VerticalAlignment="Center"
+                    Content="{Binding PreviewToggleLabel}"
+                    Command="{Binding TogglePreviewCommand}"
+                    ToolTip.Tip="Markdown 实时预览（Ctrl+E）：在编辑区右侧并排显示渲染结果，正文改动后自动刷新" />
+          </Grid>
         </Border>
 
-        <!-- ═══ Document content ═══ -->
-        <ContentControl Grid.Row="1" Content="{Binding ActiveDocument}">
-            <ContentControl.DataTemplates>
-                <DataTemplate DataType="vm:FileDocumentViewModel">
-                    <views:FileEditorView />
-                </DataTemplate>
-                <DataTemplate DataType="vm:ToolDocumentViewModel">
-                    <views:ToolDocumentView />
-                </DataTemplate>
-            </ContentControl.DataTemplates>
-        </ContentControl>
+        <!-- ═══ Document content ＋ 右侧 Markdown 实时预览 ═══
+             预览只有一个 WebView 实例，所以放在这一层而不是每个文档视图里：
+             切换标签页不会重建它，也就不会反复付 WebView2 的初始化代价。
+             列宽暂时固定；IsPreviewPaneVisible 为 false 时整列缩为 0，不留空档。 -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+            <ContentControl Grid.Column="0" Content="{Binding ActiveDocument}">
+                <ContentControl.DataTemplates>
+                    <DataTemplate DataType="vm:FileDocumentViewModel">
+                        <views:FileEditorView />
+                    </DataTemplate>
+                    <DataTemplate DataType="vm:ToolDocumentViewModel">
+                        <views:ToolDocumentView />
+                    </DataTemplate>
+                </ContentControl.DataTemplates>
+            </ContentControl>
+
+            <Border Grid.Column="1"
+                    Width="480"
+                    ClipToBounds="True"
+                    IsVisible="{Binding IsPreviewPaneVisible}"
+                    Background="{DynamicResource EditorBackgroundColor}"
+                    BorderBrush="{DynamicResource BorderDefaultColor}"
+                    BorderThickness="1,0,0,0">
+                <!-- 日常使用不带诊断栏；要看映射层钩子计数请用左侧活动栏的「探针」页 -->
+                <views:PreviewProbeView ShowDiagnostics="False" />
+            </Border>
+        </Grid>
 
         <!-- ═══ Empty state ═══ -->
         <Border Grid.Row="0" Grid.RowSpan="2"
