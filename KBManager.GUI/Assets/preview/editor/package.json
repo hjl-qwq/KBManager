@@ -2,14 +2,17 @@
   "name": "kbmanager-preview-editor",
   "private": true,
   "version": "0.0.0",
-  "description": "KBManager 预览/编辑面的 ProseMirror 源码。构建产物 editor.bundle.js 不提交，由 build.sh 或 npm run build 生成。",
+  "description": "KBManager 预览/编辑面的 JS 源码。构建产物 editor.bundle.js 不提交，由 build.sh 或 npm run build 生成。",
   "type": "module",
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "roundtrip": "node tools/roundtrip.mjs"
   },
   "dependencies": {
-    "prosemirror-example-setup": "1.2.3",
-    "prosemirror-markdown": "1.13.8",
+    "prosemirror-commands": "1.7.2",
+    "prosemirror-history": "1.5.1",
+    "prosemirror-keymap": "1.2.3",
+    "prosemirror-model": "1.25.12",
     "prosemirror-state": "1.4.4",
     "prosemirror-view": "1.42.6"
   },

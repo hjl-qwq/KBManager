@@ -158,6 +158,16 @@ pre.md-meta-block { font-size: 0.8rem; min-height: 0.8rem; white-space: pre-wrap
 .md-alert-caution { border-left-color: #cf222e; }
 .md-alert-text { font-size: 0.9rem; font-weight: 700; }
 ::selection { background: var(--select-text-bg-color); }
+
+/* ══ 就地编辑面（只在编辑模式下有意义）══
+   语法符号是文档里的真实文本节点，只打了 .md-marker 类。
+   非当前块 → display:none 藏起来。这里用 display:none 而不是 font-size:0，有两个原因：
+     ① 非当前块意味着光标不在里面，不需要走进去编辑那些符号；
+     ② 代码块的 white-space: pre 会让 font-size:0 的换行符仍然撑出一个空行。
+   当前块（光标所在，由 ProseMirror 的 node decoration 加 .md-active）→ 符号显形，可直接改。 */
+.md-marker { display: none; }
+.md-active .md-marker { display: inline; }
+#kbEditor .ProseMirror { outline: none; }
 </style>
 <link rel="stylesheet" href="__THEME_CSS__">
 </head>
@@ -258,9 +268,11 @@ __EDITOR_SCRIPT__</body>
         : '  挂载       : ⚠️ 失败 —— ' + editor.error);
       if (editor.mounted) {
         lines.push('  DOM 契约   : ' + editor.contract);
+        lines.push('  顶层块     : ' + (editor.kinds || 'n/a'));
+        lines.push('  可隐藏符号 : .md-marker=' + (editor.markers === undefined ? 'n/a' : editor.markers));
         lines.push('  往返保真   : ' + (editor.roundTripIdentical
-          ? '✅ 解析→序列化与原文一致'
-          : '⚠️ 被规范化：' + editor.roundTripDetail));
+          ? '✅ ' + editor.roundTripDetail
+          : '⚠️ ' + editor.roundTripDetail));
       }
     }
 

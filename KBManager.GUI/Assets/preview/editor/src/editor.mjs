@@ -1,70 +1,60 @@
-// KBManager 预览/编辑面 —— C1 切片一：只验证「就地编辑能不能成立」。
+// KBManager 就地编辑面 —— C1：保真模型 + Typora 契约渲染。
 //
-// 这一片刻意什么都不做全：
-//   · 不实现语法符号的隐显（Milkup 那套 syntax_marker 设计是下一片的事）
-//   · 不写盘（WebView 里的编辑不碰笔记文件，只用来判断手感）
-//   · 不处理表格 / YAML 前言 / 公式（markdown-it 默认不认识，下一片补 parser spec）
+// 与上一版的根本区别：文档不再由 prosemirror-markdown 解析。这里用的是我们自己的
+// schema / parse / serialize（见 schema.mjs / parse.mjs / serialize.mjs），它们保证
+// **源文件的每一个字符都在文档里**（`**`、`# `、`- `、围栏符、缩进、行尾空白、空行），
+// 因此「打开 → 不改 → 写回」逐字节不变。诊断栏里的「往返保真」就是这个断言在应用里的实测。
 //
-// 它要回答三个问题：
-//   ① ProseMirror 能不能在 WebView 里跑起来（classic script + file:// 加载）
-//   ② Typora 主题能不能作用于它的 DOM —— 这里的关键是：ProseMirror 的 mark 会渲染成
-//      真实元素（<strong>/<em>/<code>），所以主题的 #write strong 这类规则照样命中。
-//      这正是选 ProseMirror 而不是 CodeMirror 6 的理由（CM6 的行式 DOM 命中不了）。
-//   ③ 中文输入法手感。
-//
-// 整个切片一只用 prosemirror-markdown 导出的那一个 schema 实例：它的 defaultMarkdownParser
-// 产出的是该实例的节点，如果另建一个 schema 会直接抛 "Cannot use node from a different schema"。
-import { EditorState } from 'prosemirror-state';
-import { EditorView } from 'prosemirror-view';
-import { exampleSetup } from 'prosemirror-example-setup';
-import { schema, defaultMarkdownParser, defaultMarkdownSerializer } from 'prosemirror-markdown';
+// 语法符号是真实文本节点，只打了 syntax_marker 标记：
+//   · 光标不在那个块里 → CSS 把标记缩成 0 号字（藏起来，但光标仍能走进去）
+//   · 光标在那个块里   → 标记显形，可以直接改（和 Typora 一样）
+import { EditorState, Plugin, PluginKey } from 'prosemirror-state';
+import { EditorView, Decoration, DecorationSet } from 'prosemirror-view';
+import { keymap } from 'prosemirror-keymap';
+import { baseKeymap } from 'prosemirror-commands';
+import { history, undo, redo } from 'prosemirror-history';
+import { schema } from './schema.mjs';
+import { parseDoc } from './parse.mjs';
+import { serializeDoc } from './serialize.mjs';
+import { kbInputRules } from './input-rules.mjs';
 
 let view = null;
 let original = '';
 
-function count(selector) {
-  const host = document.getElementById('write');
-  return host ? host.querySelectorAll(selector).length : -1;
-}
+const activeBlockKey = new PluginKey('kbActiveBlock');
 
-// ProseMirror 实际产出的 DOM 契约：主题能不能生效，全看这几项。
-function domContract() {
-  return 'h1..h6=' + count('h1,h2,h3,h4,h5,h6') +
-         '  p=' + count('p') +
-         '  strong=' + count('strong') +
-         '  em=' + count('em') +
-         '  code=' + count('code') +
-         '  blockquote=' + count('blockquote') +
-         '  li=' + count('li') +
-         '  pre=' + count('pre') +
-         '  【主题要的 pre.md-fences=' + count('pre.md-fences') + '】';
-}
-
-function firstDifference(a, b) {
-  const left = a.split('\n');
-  const right = b.split('\n');
-  for (let i = 0; i < Math.max(left.length, right.length); i++) {
-    if (left[i] !== right[i]) {
-      return '第 ' + (i + 1) + ' 行  ' + JSON.stringify(left[i] ?? null) + '  →  ' + JSON.stringify(right[i] ?? null);
+/**
+ * 给「光标所在的那个块」加一个 md-active class。
+ * 只做这一个判断，而不是逐字符算该藏哪一段：把显隐交给 CSS（.md-marker 与 .md-active .md-marker），
+ * 逻辑就只是"光标在哪个块"，位置算术少得多、也不容易错。
+ */
+function activeBlockPlugin() {
+  return new Plugin({
+    key: activeBlockKey,
+    props: {
+      decorations(state) {
+        const $from = state.selection.$from;
+        for (let depth = $from.depth; depth > 0; depth--) {
+          const node = $from.node(depth);
+          if (!node || !node.isTextblock) continue;
+          const start = $from.before(depth);
+          return DecorationSet.create(state.doc, [
+            Decoration.node(start, start + node.nodeSize, { class: 'md-active' })
+          ]);
+        }
+        return DecorationSet.empty;
+      }
     }
-  }
-  return '无';
+  });
 }
 
-// 往返保真：把当前文档序列化回 Markdown，和原始文本逐行比。
-// 切片一用的是 prosemirror-markdown 的默认序列化器，它**会规范化 Markdown** ——
-// 这里把差异量出来，正好说明为什么正式实现需要 syntax_marker 那套设计。
-function roundTrip() {
-  if (!view) return { identical: false, detail: '未挂载' };
-  let text;
-  try {
-    text = defaultMarkdownSerializer.serialize(view.state.doc);
-  } catch (e) {
-    return { identical: false, detail: 'error: ' + e.message };
-  }
-  const a = original.replace(/\s+$/, '');
-  const b = text.replace(/\s+$/, '');
-  return { identical: a === b, detail: a === b ? '无' : firstDifference(a, b) };
+/** 源侧最外层块的类型统计，用于诊断栏。 */
+function blockKinds(doc) {
+  const counts = {};
+  doc.forEach((node) => {
+    counts[node.type.name] = (counts[node.type.name] || 0) + 1;
+  });
+  return counts;
 }
 
 function updateInfo(error) {
@@ -72,19 +62,65 @@ function updateInfo(error) {
   if (view) {
     let blocks = 0;
     let chars = 0;
-    view.state.doc.descendants(function (node) {
+    view.state.doc.descendants((node) => {
       if (node.isTextblock) {
         blocks++;
         chars += node.textContent.length;
       }
     });
-    const trip = roundTrip();
+
+    // 保真实测：把当前文档序列化回 Markdown，和打开时的原文逐字节比。
+    // 用户没有改动时它必须是"一致" —— 这是"文件不会因为用了编辑器而变化"在应用里的证明。
+    let roundTripIdentical = false;
+    let roundTripDetail = '';
+    try {
+      const text = serializeDoc(view.state.doc);
+      if (text === original) {
+        roundTripIdentical = true;
+        roundTripDetail = '与打开时逐字节一致';
+      } else {
+        // 找出第一处差异，方便判断是不是真的被编辑器改动了
+        const n = Math.min(text.length, original.length);
+        let at = -1;
+        for (let i = 0; i < n; i++) {
+          if (text[i] !== original[i]) {
+            at = i;
+            break;
+          }
+        }
+        if (at < 0) at = n;
+        let line = 1;
+        for (let i = 0; i < at && i < original.length; i++) if (original[i] === '\n') line++;
+        const a = original.split('\n')[line - 1] ?? '(不存在)';
+        const b = text.split('\n')[line - 1] ?? '(不存在)';
+        roundTripDetail =
+          '原文 ' + original.length + ' 字符 / 回写 ' + text.length + ' 字符，首个差异在第 ' + line + ' 行';
+        if (a !== b) roundTripDetail += `：${JSON.stringify(a.slice(0, 60))} → ${JSON.stringify(b.slice(0, 60))}`;
+      }
+    } catch (e) {
+      roundTripDetail = 'error: ' + e.message;
+    }
+
+    const kinds = blockKinds(view.state.doc);
     info.mounted = true;
     info.blocks = blocks;
     info.chars = chars;
-    info.contract = domContract();
-    info.roundTripIdentical = trip.identical;
-    info.roundTripDetail = trip.detail;
+    info.roundTripIdentical = roundTripIdentical;
+    info.roundTripDetail = roundTripDetail;
+    info.contract =
+      'h1..h6=' + (document.querySelectorAll('#write h1,#write h2,#write h3,#write h4,#write h5,#write h6').length) +
+      '  p=' + document.querySelectorAll('#write p').length +
+      '  strong=' + document.querySelectorAll('#write strong').length +
+      '  em=' + document.querySelectorAll('#write em').length +
+      '  code=' + document.querySelectorAll('#write code').length +
+      '  blockquote=' + document.querySelectorAll('#write blockquote').length +
+      '  li=' + document.querySelectorAll('#write li').length +
+      '  pre.md-fences=' + document.querySelectorAll('#write pre.md-fences').length;
+    info.kinds = Object.entries(kinds)
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `${k}=${v}`)
+      .join('  ');
+    info.markers = document.querySelectorAll('#write .md-marker').length;
   }
   window.kbEditorInfo = info;
   if (typeof window.kbReport === 'function') window.kbReport();
@@ -92,15 +128,31 @@ function updateInfo(error) {
 
 function mount(markdown) {
   const host = document.getElementById('kbEditor');
-  if (!host) { updateInfo('页面里没有 #kbEditor'); return false; }
-  if (view) { view.destroy(); view = null; }
+  if (!host) {
+    updateInfo('页面里没有 #kbEditor');
+    return false;
+  }
+  if (view) {
+    view.destroy();
+    view = null;
+  }
 
   original = markdown || '';
   try {
-    const doc = defaultMarkdownParser.parse(original);
+    const doc = parseDoc(original);
     view = new EditorView(host, {
-      state: EditorState.create({ doc, plugins: exampleSetup({ schema, menuBar: false }) }),
-      // 自己接管事务，才能在每次编辑后刷新诊断。
+      state: EditorState.create({
+        doc,
+        plugins: [
+          // 输入规则放在最前：敲完 `**粗体**` 的最后一个 `*` 时立刻变成真正的 <strong>
+          // （规则内部有"字符必须完全一致"的保护，见 input-rules.mjs）。
+          kbInputRules(),
+          history(),
+          keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Mod-Shift-z': redo }),
+          keymap(baseKeymap),
+          activeBlockPlugin()
+        ]
+      }),
       dispatchTransaction(tr) {
         view.updateState(view.state.apply(tr));
         updateInfo();
@@ -111,6 +163,7 @@ function mount(markdown) {
     updateInfo(e.name + ': ' + e.message);
     return false;
   }
+
   updateInfo();
   return true;
 }
@@ -118,11 +171,14 @@ function mount(markdown) {
 window.kbEditor = {
   mount,
   destroy() {
-    if (view) { view.destroy(); view = null; }
+    if (view) {
+      view.destroy();
+      view = null;
+    }
     window.kbEditorInfo = { mounted: false, error: '已卸载' };
   },
-  // 将来 C# 通过 InvokeScript 取回正文（切片一还不写盘）。
+  // 将来 C# 通过 InvokeScript 取回正文（当前切片还不写盘）。
   markdown() {
-    return view ? defaultMarkdownSerializer.serialize(view.state.doc) : '';
+    return view ? serializeDoc(view.state.doc) : '';
   }
 };
