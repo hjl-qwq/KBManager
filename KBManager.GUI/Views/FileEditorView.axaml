@@ -79,12 +79,23 @@
              measured at the viewport width: the text wraps instead of running off to
              the right, and the line-number gutter can never be scrolled out of view.
              Soft wrapping is display only — the buffer keeps one logical line per
-             newline, so nothing is written back to disk with hard breaks. -->
+             newline, so nothing is written back to disk with hard breaks.
+
+             BringIntoViewOnFocusChange="False" is load-bearing, not cosmetic:
+             ScrollViewer.OnGotFocus (default true) calls BringIntoView() on the control
+             that got focus, and the editor TextBox grows to the whole document height
+             because its own scrolling is disabled. Bringing that box into view cannot
+             fit the viewport, so ScrollContentPresenter aligns its *bottom* edge — the
+             view jumped to the end of the document on every click into the text, which
+             also turned a click into a drag-select because the content moved between
+             press and release. The caret itself is still revealed on focus: that comes
+             from TextPresenter.ShowCaret() requesting a one-line rect. -->
         <ScrollViewer Grid.Row="1"
                       Name="EditorScroll"
                       Background="{DynamicResource EditorBackgroundColor}"
                       HorizontalScrollBarVisibility="Disabled"
-                      VerticalScrollBarVisibility="Auto">
+                      VerticalScrollBarVisibility="Auto"
+                      BringIntoViewOnFocusChange="False">
             <Grid ColumnDefinitions="Auto,*">
                 <Border Grid.Column="0" Classes="gutter" MinWidth="52">
                     <!-- Filled by the view from the editor's own text layout, one

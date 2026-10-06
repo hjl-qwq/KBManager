@@ -36,7 +36,10 @@
                 Background="{DynamicResource BackgroundDarkColor}"
                 CornerRadius="4"
                 Padding="12">
-            <ScrollViewer>
+            <!-- BringIntoViewOnFocusChange="False": SelectableTextBlock 可以聚焦，而它在这个
+                 滚动容器里长到整篇日志的高度，于是"聚焦时把整个控件滚进可视区"会退化成对齐底边 ——
+                 点一下日志文字选词就会跳到末尾。关掉它，滚动位置只由用户操作决定。 -->
+            <ScrollViewer BringIntoViewOnFocusChange="False">
                 <SelectableTextBlock Text="{Binding LogText}"
                                      FontFamily="Cascadia Code, Consolas, DejaVu Sans Mono, monospace"
                                      FontSize="11.5"
